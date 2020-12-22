@@ -3,13 +3,12 @@ package org.firstinspires.ftc.teamcode.barebones;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.Range;
 
 /**
  */
-@TeleOp(name="BareBones: Drive", group="BareBones")
-public class BareBones_Drive extends OpMode {
+@TeleOp(name="BareBones: EncoderDrive", group="BareBones")
+public class BareBones_EncoderDrive extends OpMode {
 
     // Instance Members.
     private boolean doMotors = true;
@@ -28,14 +27,17 @@ public class BareBones_Drive extends OpMode {
             leftDrive.setDirection(DcMotor.Direction.REVERSE);
             rightDrive.setDirection(DcMotor.Direction.FORWARD);
 
+            // initialize the encoder
+            leftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            rightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            leftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            rightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            leftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            rightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
             // Set all motors to zero power.
             leftDrive.setPower(0);
             rightDrive.setPower(0);
-
-            // Set all motors to run without encoders.
-            // May want to use RUN_USING_ENCODERS if encoders are installed.
-            leftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            rightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         }
 
         telemetry.addData("Yo", "Initialized Drive, motors=%b", doMotors);
@@ -58,6 +60,9 @@ public class BareBones_Drive extends OpMode {
             rightDrive.setPower(rightPower);
             telemetry.addData("left", "%.2f", leftPower);
             telemetry.addData("right", "%.2f", rightPower);
+
+            telemetry.addData("Motor:", "left:%02.1f, (%d), rigt: %02.1f, (%d)",
+                    leftDrive.getPower(), leftDrive.getCurrentPosition(), rightDrive.getPower(), rightDrive.getCurrentPosition());
         }
 
         telemetry.addData("Status", "Run Clock: %.2f", getRuntime());
