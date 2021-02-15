@@ -11,6 +11,21 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
+import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
+import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
+import org.firstinspires.ftc.teamcode.barebones.BareBones_RingDetection;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 /**
  */
 public abstract class AutoBase extends OpMode {
@@ -42,10 +57,42 @@ public abstract class AutoBase extends OpMode {
     private boolean doGyro = true;
     private BNO055IMU bosch;
 
+    long startTime =  System.nanoTime();
+    long waitTime = TimeUnit.SECONDS.toNanos(5L);
+
     // run state
     private boolean madeTheRun = false;
     private boolean canceled = false;
 
+    private boolean doVuforia = true;
+    public enum RingConfig
+    {
+        UNDETERMINED,
+        EMPTY,
+        SINGLE,
+        QUAD,
+    }
+
+    private static final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
+    private static final String LABEL_FIRST_ELEMENT = "Quad";
+    private static final String LABEL_SECOND_ELEMENT = "Single";
+
+    private static final String VUFORIA_KEY =
+            "AfgOBrf/////AAABmRjMx12ilksPnWUyiHDtfRE42LuceBSFlCTIKmmNqCn2EOk3I4NtDCSr0wCLFxWPoLR2qHKraX49ofQ2JknI76SJS5Hy8cLbIN+1GlFDqC8ilhuf/Y1yDzKN6a4n0fYWcEPlzHRc8C1V+D8vZ9QjoF3r//FDDtm+M3qlmwA7J/jNy4nMSXWHPCn2IUASoNqybTi/CEpVQ+jEBOBjtqxNgb1CEdkFJrYGowUZRP0z90+Sew2cp1DJePT4YrAnhhMBOSCURgcyW3q6Pl10XTjwB4/VTjF7TOwboQ5VbUq0wO3teE2TXQAI53dF3ZUle2STjRH0Rk8H94VtHm9u4uitopFR7zmxVl3kQB565EUHwfvG";
+
+    /**
+     * {@link #vuforia} is the variable we will use to store our instance of the Vuforia
+     * localization engine.
+     */
+    private VuforiaLocalizer vuforia;
+
+    /**
+     * {@link #tfod} is the variable we will use to store our instance of the TensorFlow Object
+     * Detection engine.
+     */
+    private TFObjectDetector tfod;
+
+    private List<Recognition> recognitionsList = new ArrayList<>();
 
 
     // Called once, right after hitting the Init button.
@@ -80,7 +127,27 @@ public abstract class AutoBase extends OpMode {
         canceled = false;
 
         telemetry.addData("Yo", "Initialized Drive, motors=%b", doMotors);
+
+        if (doVuforia){
+            initVuforia();
+            initTfod();
+
+            if (tfod != null) {
+                tfod.activate();
+
+                // The TensorFlow software will scale the input images from the camera to a lower resolution.
+                // This can result in lower detection accuracy at longer distances (> 55cm or 22").
+                // If your target is at distance greater than 50 cm (20") you can adjust the magnification value
+                // to artificially zoom in to the center of image.  For best results, the "aspectRatio" argument
+                // should be set to the value of the images used to create the TensorFlow Object Detection model
+                // (typically 1.78 or 16/9).
+
+                // Uncomment the following line if you want to adjust the magnification and/or the aspect ratio of the input images.
+                //tfod.setZoom(2.5, 1.78);
+            }
+        }
     }
+
 
     protected boolean initGyroscope() {
         if (doGyro) {
@@ -120,6 +187,9 @@ public abstract class AutoBase extends OpMode {
 
         printStatus();
     }
+
+
+
 
     /**
      * @param deltaAngle must be between 0 and 359.9
@@ -461,6 +531,89 @@ public abstract class AutoBase extends OpMode {
                 leftFrontTarget,
                 rightFrontTarget); */
         // sleep(100);
+    }
+
+    /**
+     * Initialize the Vuforia localization engine.
+     */
+    private void initVuforia() {
+        /*
+         * Configure Vuforia by creating a Parameter object, and passing it to the Vuforia engine.
+         */
+        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
+
+        parameters.vuforiaLicenseKey = VUFORIA_KEY;
+        parameters.cameraName = hardwareMap.get(WebcamName.class, "Webcam");
+
+        //  Instantiate the Vuforia engine
+        vuforia = ClassFactory.getInstance().createVuforia(parameters);
+
+        // Loading trackables is not necessary for the TensorFlow Object Detection engine.
+    }
+
+    /**
+     * Initialize the TensorFlow Object Detection engine.
+     */
+    private void initTfod() {
+        int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
+                "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
+        tfodParameters.minResultConfidence = 0.8f;
+        tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
+        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_FIRST_ELEMENT, LABEL_SECOND_ELEMENT);
+    }
+
+
+    protected RingConfig getRingConfiguration()
+    {
+        RingConfig currentRings = RingConfig.UNDETERMINED;
+
+        if (recognitionsList.size() <= 0) {
+            currentRings = RingConfig.EMPTY;
+        }
+        else if (recognitionsList.size() > 1) {
+            currentRings = RingConfig.UNDETERMINED;
+        }
+        else {
+            Recognition r = recognitionsList.get(0);
+            if (r.getLabel().equalsIgnoreCase("quad")){
+                currentRings = RingConfig.QUAD;
+            } else {
+                currentRings = RingConfig.SINGLE;
+            }
+        }
+        telemetry.addData("# Rings Detected", currentRings);
+        return currentRings;
+    }
+
+    protected RingConfig ringIdentifier() {
+        long currentTime = System.nanoTime();
+        while (currentTime < startTime + waitTime) {
+            // debug: telemt=try print nout
+            sleep(1);
+        }
+
+        telemetry.addData("# Object Detected", recognitionsList.size());
+
+        // step through the list of recognitions and display boundary info.
+        int i = 0;
+
+        for (Recognition recognition : recognitionsList) {
+            telemetry.addData(String.format("label (%d)", i), recognition.getLabel());
+            telemetry.addData(String.format("  left,top (%d)", i), "%.03f , %.03f",
+                    recognition.getLeft(), recognition.getTop());
+            telemetry.addData(String.format("  right,bottom (%d)", i), "%.03f , %.03f",
+                    recognition.getRight(), recognition.getBottom());
+        }
+
+        RingConfig rc = getRingConfiguration();
+                telemetry.addData("RingConfig", "%s", rc);
+
+        // update our logs to the output.
+                telemetry.update();
+
+        return rc;
+
     }
 
 }
