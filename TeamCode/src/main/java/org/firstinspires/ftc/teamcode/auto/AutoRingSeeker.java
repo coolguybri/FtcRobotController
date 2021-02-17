@@ -20,7 +20,17 @@ public class AutoRingSeeker extends AutoBase {
 
     @Override
     public void ratCrewGo() {
-        ringIdentifier();
+        ratCrewWaitMillis(500);
+        RingConfig rc = ringIdentifier();
+        printStatus();
+
+        //TODO: debug only, remove 5 sec wait
+        ratCrewWaitMillis(2000);
+        telemetry.addData("RingSeek", "rc=%s", rc);
+        telemetry.update();
+
+        //TODO: Uncomment if needed
+        /*
         long currentTime = System.nanoTime();
         long loopCrasher = TimeUnit.SECONDS.toNanos(4L);
         int forMove = 0;
@@ -35,16 +45,16 @@ public class AutoRingSeeker extends AutoBase {
                 break;
             }
         }
-        encoderDrive(-forMove);
+        encoderDrive(-forMove); */
 
 
-        if (ringIdentifier() == RingConfig.QUAD){
+        if (rc == RingConfig.QUAD){
             turnLeft(90);
-            encoderDrive(24);
-        }else if (ringIdentifier() == RingConfig.SINGLE){
+            //encoderDrive(24);
+        } else if (rc == RingConfig.SINGLE){
             turnRight(90);
-            encoderDrive(24);
-        }else {
+            //encoderDrive(24);
+        } else {
             turnRight(90);
             turnLeft(90);
         }
