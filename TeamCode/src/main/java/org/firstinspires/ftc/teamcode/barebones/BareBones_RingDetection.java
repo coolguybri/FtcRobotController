@@ -54,9 +54,7 @@ import java.util.concurrent.TimeUnit;
  * is explained below.
  */
 @TeleOp(name = "BareBones: RingDetection", group = "BareBones")
-
 public class BareBones_RingDetection extends LinearOpMode {
-
 
     public enum RingConfig
     {
@@ -70,34 +68,13 @@ public class BareBones_RingDetection extends LinearOpMode {
     private static final String LABEL_FIRST_ELEMENT = "Quad";
     private static final String LABEL_SECOND_ELEMENT = "Single";
 
-    /*
-     * IMPORTANT: You need to obtain your own license key to use Vuforia. The string below with which
-     * 'parameters.vuforiaLicenseKey' is initialized is for illustration only, and will not function.
-     * A Vuforia 'Development' license key, can be obtained free of charge from the Vuforia developer
-     * web site at https://developer.vuforia.com/license-manager.
-     *
-     * Vuforia license keys are always 380 characters long, and look as if they contain mostly
-     * random data. As an example, here is a example of a fragment of a valid key:
-     *      ... yIgIzTqZ4mWjk9wd3cZO9T1axEqzuhxoGlfOOI2dRzKS4T0hQ8kT ...
-     * Once you've obtained a license key, copy the string from the Vuforia web site
-     * and paste it in to your code on the next line, between the double quotes.
-     */
     private static final String VUFORIA_KEY =
             "AfgOBrf/////AAABmRjMx12ilksPnWUyiHDtfRE42LuceBSFlCTIKmmNqCn2EOk3I4NtDCSr0wCLFxWPoLR2qHKraX49ofQ2JknI76SJS5Hy8cLbIN+1GlFDqC8ilhuf/Y1yDzKN6a4n0fYWcEPlzHRc8C1V+D8vZ9QjoF3r//FDDtm+M3qlmwA7J/jNy4nMSXWHPCn2IUASoNqybTi/CEpVQ+jEBOBjtqxNgb1CEdkFJrYGowUZRP0z90+Sew2cp1DJePT4YrAnhhMBOSCURgcyW3q6Pl10XTjwB4/VTjF7TOwboQ5VbUq0wO3teE2TXQAI53dF3ZUle2STjRH0Rk8H94VtHm9u4uitopFR7zmxVl3kQB565EUHwfvG";
- 
-    /**
-     * {@link #vuforia} is the variable we will use to store our instance of the Vuforia
-     * localization engine.
-     */
+
     private VuforiaLocalizer vuforia;
-
-    /**
-     * {@link #tfod} is the variable we will use to store our instance of the TensorFlow Object
-     * Detection engine.
-     */
     private TFObjectDetector tfod;
-
     private List<Recognition> recognitionsList = new ArrayList<>();
+    private int numCallbacks;
 
     @Override
     public void runOpMode() {
@@ -121,62 +98,46 @@ public class BareBones_RingDetection extends LinearOpMode {
             // (typically 1.78 or 16/9).
 
             // Uncomment the following line if you want to adjust the magnification and/or the aspect ratio of the input images.
-            //tfod.setZoom(2.5, 1.78);
+            tfod.setZoom(2.5, 1.78);
         }
 
         /** Wait for the game to begin */
-        telemetry.addData(">", "Press Play to start op mode");
+        telemetry.addData("Init", "tensor=%b", (tfod != null));
         telemetry.update();
         waitForStart();
 
-
         if ((tfod != null) && opModeIsActive()) {
 
-            // todo: record start time
+            // Record start time
             long startTime =  System.nanoTime();
             long waitTime = TimeUnit.SECONDS.toNanos(5L);
 
+            // MAIN LOOP
             while (opModeIsActive()) {
-
-                // MAIN LOOP
 
                 // Probe the Tensor Flow vision library to see if it detected anything yet.
                 List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
                 if (updatedRecognitions != null) {
-                    // save this list to a local variable.
-                    telemetry.addData("# Object Detected", updatedRecognitions.size());
-                    recognitionsList = updatedRecognitions;
+                    numCallbacks++;
+                    // make a copy of the list
+                    recognitionsList = new ArrayList<>(updatedRecognitions);
                 }
 
-                // todo: if not enough time has gone by, keep waiting.
                 long currentTime = System.nanoTime();
-                if (currentTime < startTime + waitTime) {
-                    // debug: telemt=try print nout
-                    continue;
-                }
-
-                // If we got here, we are ready to make our final decision.
-                telemetry.addData("# Object Detected", recognitionsList.size());
+                boolean waitOver = (currentTime > startTime + waitTime);
+                RingConfig rc = getRingConfiguration();
+                telemetry.addData("RingConfig", "%s", rc);
+                telemetry.addData("Loop", "waitOver=%b, objects=%d, callbacks=%d", waitOver, recognitionsList.size(), numCallbacks);
 
                 // step through the list of recognitions and display boundary info.
                 int i = 0;
                 for (Recognition recognition : recognitionsList) {
-                    telemetry.addData(String.format("label (%d)", i), recognition.getLabel());
-                    telemetry.addData(String.format("  left,top (%d)", i), "%.03f , %.03f",
-                            recognition.getLeft(), recognition.getTop());
-                    telemetry.addData(String.format("  right,bottom (%d)", i), "%.03f , %.03f",
-                            recognition.getRight(), recognition.getBottom());
+                    telemetry.addData(String.format(" objects %d", i), recognition.getLabel());
+                    telemetry.addData(String.format(" location %d", i), "%.02f , %.02f, %.02f , %.02f",
+                            recognition.getLeft(), recognition.getTop(), recognition.getRight(), recognition.getBottom());
                 }
-
-                RingConfig rc = getRingConfiguration();
-                telemetry.addData("RingConfig", "%s", rc);
-
                 // update our logs to the output.
                 telemetry.update();
-
-                // todo" based on what we just saw, return the correct enum.
-
-
             }
         } // END  OF MAIN LOOP
 
@@ -189,18 +150,10 @@ public class BareBones_RingDetection extends LinearOpMode {
      * Initialize the Vuforia localization engine.
      */
     private void initVuforia() {
-        /*
-         * Configure Vuforia by creating a Parameter object, and passing it to the Vuforia engine.
-         */
         VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
-
         parameters.vuforiaLicenseKey = VUFORIA_KEY;
         parameters.cameraName = hardwareMap.get(WebcamName.class, "Webcam");
-
-        //  Instantiate the Vuforia engine
         vuforia = ClassFactory.getInstance().createVuforia(parameters);
-
-        // Loading trackables is not necessary for the TensorFlow Object Detection engine.
     }
 
     /**
@@ -219,22 +172,20 @@ public class BareBones_RingDetection extends LinearOpMode {
     public RingConfig getRingConfiguration()
     {
         RingConfig currentRings = RingConfig.UNDETERMINED;
-
-            if (recognitionsList.size() <= 0) {
-                currentRings = RingConfig.EMPTY;
+        if (recognitionsList.size() <= 0) {
+            currentRings = RingConfig.EMPTY;
+        }
+        else if (recognitionsList.size() > 1) {
+            currentRings = RingConfig.UNDETERMINED;
+        }
+        else {
+            Recognition r = recognitionsList.get(0);
+            if (r.getLabel().equalsIgnoreCase("quad")){
+                currentRings = RingConfig.QUAD;
+            } else {
+                currentRings = RingConfig.SINGLE;
             }
-            else if (recognitionsList.size() > 1) {
-                currentRings = RingConfig.UNDETERMINED;
-            }
-            else {
-                Recognition r = recognitionsList.get(0);
-                if (r.getLabel().equalsIgnoreCase("quad")){
-                    currentRings = RingConfig.QUAD;
-                } else {
-                    currentRings = RingConfig.SINGLE;
-                }
-            }
-        telemetry.addData("# Rings Detected", currentRings);
+        }
         return currentRings;
     }
 }
