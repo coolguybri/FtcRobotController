@@ -29,7 +29,15 @@ import java.util.concurrent.TimeUnit;
 
 /**
  */
-public abstract class AutoBase extends OpMode {
+public abstract class AutoBase extends LinearOpMode {
+
+    public enum RingConfig
+    {
+        UNDETERMINED,
+        EMPTY,
+        SINGLE,
+        QUAD,
+    }
 
     // MAGIC NUMBERS for the motor encoders
     // https://asset.pitsco.com/sharedimages/resources/torquenado_dcmotorspecifications.pdf
@@ -38,6 +46,13 @@ public abstract class AutoBase extends OpMode {
     static final float COUNTS_PER_MOTOR_REV_HDHEX_40  = 1120; // 28 cycles per rotation at the main motor, times 40:1 geared down
     static final float COUNTS_PER_MOTOR_REV_HDHEX_20 = 560; // 28 cycles per rotation at the main motor, times 20:1 geared down
 
+    // Vuforia Constants
+    private static final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
+    private static final String LABEL_FIRST_ELEMENT = "Quad";
+    private static final String LABEL_SECOND_ELEMENT = "Single";
+    private static final String VUFORIA_KEY =
+            "AfgOBrf/////AAABmRjMx12ilksPnWUyiHDtfRE42LuceBSFlCTIKmmNqCn2EOk3I4NtDCSr0wCLFxWPoLR2qHKraX49ofQ2JknI76SJS5Hy8cLbIN+1GlFDqC8ilhuf/Y1yDzKN6a4n0fYWcEPlzHRc8C1V+D8vZ9QjoF3r//FDDtm+M3qlmwA7J/jNy4nMSXWHPCn2IUASoNqybTi/CEpVQ+jEBOBjtqxNgb1CEdkFJrYGowUZRP0z90+Sew2cp1DJePT4YrAnhhMBOSCURgcyW3q6Pl10XTjwB4/VTjF7TOwboQ5VbUq0wO3teE2TXQAI53dF3ZUle2STjRH0Rk8H94VtHm9u4uitopFR7zmxVl3kQB565EUHwfvG";
+
     private static final int NUDGE_TIME = 1;
     private static final float NUDGE_ANGLE = 4.0f;
     private static final float NORMALIZE_ANGLE = 360.0f;
@@ -45,8 +60,9 @@ public abstract class AutoBase extends OpMode {
     private static final float MOTOR_MOVE_SPEED = 0.8f;
     private static final float COUNTS_PER_MOTOR = COUNTS_PER_MOTOR_TORKNADO;
     private static final float WHEEL_DIAMETER = 4.0f;
+    private static final long WAIT_TIME = TimeUnit.SECONDS.toMillis(5L);
 
-    // Instance Members.
+    // Instance Members: Motors
     private boolean doMotors = true;
     private DcMotor leftDrive;
     private DcMotor rightDrive;
@@ -56,50 +72,23 @@ public abstract class AutoBase extends OpMode {
     private float motorTurnAngleToGo = 0.0f;
     private float motorTurnAngleAdjustedToGo = 0.0f;
 
+    // Instance Members: Gyro
     private boolean doGyro = true;
     private BNO055IMU bosch;
 
-    long startTime =  System.nanoTime();
-    long waitTime = TimeUnit.SECONDS.toNanos(5L);
-
-    // run state
+    // Instance Members: Core
+    private long startTime =  System.nanoTime();
     private boolean madeTheRun = false;
-    private boolean canceled = false;
 
+    // Instance Members: Vuforia
     private boolean doVuforia = true;
-    public enum RingConfig
-    {
-        UNDETERMINED,
-        EMPTY,
-        SINGLE,
-        QUAD,
-    }
-
-    private static final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
-    private static final String LABEL_FIRST_ELEMENT = "Quad";
-    private static final String LABEL_SECOND_ELEMENT = "Single";
-
-    private static final String VUFORIA_KEY =
-            "AfgOBrf/////AAABmRjMx12ilksPnWUyiHDtfRE42LuceBSFlCTIKmmNqCn2EOk3I4NtDCSr0wCLFxWPoLR2qHKraX49ofQ2JknI76SJS5Hy8cLbIN+1GlFDqC8ilhuf/Y1yDzKN6a4n0fYWcEPlzHRc8C1V+D8vZ9QjoF3r//FDDtm+M3qlmwA7J/jNy4nMSXWHPCn2IUASoNqybTi/CEpVQ+jEBOBjtqxNgb1CEdkFJrYGowUZRP0z90+Sew2cp1DJePT4YrAnhhMBOSCURgcyW3q6Pl10XTjwB4/VTjF7TOwboQ5VbUq0wO3teE2TXQAI53dF3ZUle2STjRH0Rk8H94VtHm9u4uitopFR7zmxVl3kQB565EUHwfvG";
-
-    /**
-     * {@link #vuforia} is the variable we will use to store our instance of the Vuforia
-     * localization engine.
-     */
     private VuforiaLocalizer vuforia;
-
-    /**
-     * {@link #tfod} is the variable we will use to store our instance of the TensorFlow Object
-     * Detection engine.
-     */
     private TFObjectDetector tfod;
-
     private List<Recognition> recognitionsList = new ArrayList<>();
 
 
     // Called once, right after hitting the Init button.
-    @Override
-    public void init() {
+    protected void ratCrewInit() {
 
         // TODO: push into initMotor function
         if (doMotors) {
@@ -124,14 +113,7 @@ public abstract class AutoBase extends OpMode {
             gate = hardwareMap.get(Servo.class, "Gate");
             gate.setPosition(1.0);
         }
-
         initGyroscope();
-
-        // Init run state.
-        madeTheRun = false;
-        canceled = false;
-
-        telemetry.addData("Yo", "Initialized Drive, motors=%b", doMotors);
 
         if (doVuforia){
             initVuforia();
@@ -148,16 +130,21 @@ public abstract class AutoBase extends OpMode {
                 // (typically 1.78 or 16/9).
 
                 // Uncomment the following line if you want to adjust the magnification and/or the aspect ratio of the input images.
-                //tfod.setZoom(2.5, 1.78);
+                tfod.setZoom(2.5, 1.78);
             }
         }
+
+        // Init run state.
+        madeTheRun = false;
+        startTime = 0;
+        telemetry.addData("Init", "motors=%b, gyro=%b, vuforia=%b", doMotors, doGyro, doVuforia);
+        telemetry.update();
     }
 
 
     protected boolean initGyroscope() {
         if (doGyro) {
             bosch = hardwareMap.get(BNO055IMU.class, "imu0");
-            telemetry.addData("Gyro", "class:" + bosch.getClass().getName());
 
             BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
             parameters.mode = BNO055IMU.SensorMode.IMU;
@@ -173,28 +160,25 @@ public abstract class AutoBase extends OpMode {
     }
 
     @Override
-    public void stop() {
-        canceled = true;
+    public void runOpMode(){
+        ratCrewInit();
+        waitForStart();
+
+        printStatus();
+        ratCrewStart();
+        printStatus();
     }
 
     //all Opmodes must override
     public abstract void ratCrewGo();
 
     // Called repeatedly, right after hitting start, up until hitting stop.
-    @Override
-    public void loop() {
-
-        if (madeTheRun == false) {
-
-            ratCrewGo();
-            madeTheRun = true;
-        }
-
+    public void ratCrewStart() {
+        printStatus();
+        ratCrewGo();
+        madeTheRun = true;
         printStatus();
     }
-
-
-
 
     /**
      * @param deltaAngle must be between 0 and 359.9
@@ -237,7 +221,7 @@ public abstract class AutoBase extends OpMode {
         motorTurnAngleAdjustedToGo = diffRight;
 
         // we continue in this loop as long as we still need to transition over the 360->0 boundary, or until we are within NUDGE_ANGLE degrees of the target.
-        while ((diffLeft > NUDGE_ANGLE) && (diffRight > NUDGE_ANGLE)) {
+        while (opModeIsActive() && (diffLeft > NUDGE_ANGLE) && (diffRight > NUDGE_ANGLE)) {
             float oldAngle = currentAngle;
 
             double power = MOTOR_TURN_SPEED;
@@ -283,7 +267,7 @@ public abstract class AutoBase extends OpMode {
         motorTurnAngleAdjustedToGo = diffLeft;
 
         // we continue in this loop as long as we still need to transition over the 360->0 boundary, or until we are within NUDGE_ANGLE degrees of the target.
-        while ((diffLeft > NUDGE_ANGLE) && (diffRight > NUDGE_ANGLE)) {
+        while (opModeIsActive() && (diffLeft > NUDGE_ANGLE) && (diffRight > NUDGE_ANGLE)) {
             float oldAngle = currentAngle;
 
             double power = MOTOR_TURN_SPEED;
@@ -361,77 +345,40 @@ public abstract class AutoBase extends OpMode {
         return -ret;
     }
 
-    protected void sleep(long milliseconds) {
-        try {
-            ElapsedTime sleepTime = new ElapsedTime();
-            while (!canceled && sleepTime.milliseconds() < milliseconds) {
-                Thread.sleep(1);
-                printStatus();
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
-    /**
-     *
-     */
     protected void printStatus() {
 
         if (doGyro) {
-            telemetry.addData("Gyro", "angle=%.2f", this.getGyroscopeAngle());
+            telemetry.addData("Gyro", "angle=%.1f", this.getGyroscopeAngle());
         } else {
             telemetry.addData("Gyro", "DISABLED");
         }
 
         // Show the elapsed game time and wheel power.
-        telemetry.addData("Gyro", "angle: " + this.getGyroscopeAngle());
-        telemetry.addData("Run", "madeTheRun=%b", madeTheRun);
-        telemetry.addData("Status", "Run Clock: %.2f", getRuntime());
+        telemetry.addData("Run", "madetheRun=%b, runTime: %.1f, stopped=%b", madeTheRun, getRuntime(), isStopRequested());
 
         if (doMotors) {
-           /* telemetry.addData("Motor: frnt", "left:%02.1f, (%d), rigt: %02.1f, (%d)",
-                    motorFrontLeft.getPower(), motorFrontLeft.getCurrentPosition(), motorFrontRight.getPower(), motorFrontRight.getCurrentPosition());
-            telemetry.addData("Motor: back", "left:%02.1f, (%d), rigt: %02.1f, (%d)",
-                    motorBackLeft.getPower(), motorBackLeft.getCurrentPosition(), motorBackRight.getPower(), motorBackRight.getCurrentPosition());
+           telemetry.addData("Motor", "left:%02.1f, (%d), rigt: %02.1f, (%d)",
+                    leftDrive.getPower(), leftDrive.getCurrentPosition(), rightDrive.getPower(), rightDrive.getCurrentPosition());
             telemetry.addData("Motor: turn", "type=%s, now: %02.1f, dest: %02.1f, togo= %02.1f, togo2= %02.1f",
-                    motorTurnType, this.getGyroscopeAngle(), motorTurnDestination, motorTurnAngleToGo, motorTurnAngleAdjustedToGo); */
+                    motorTurnType, this.getGyroscopeAngle(), motorTurnDestination, motorTurnAngleToGo, motorTurnAngleAdjustedToGo);
         } else {
             telemetry.addData("Motor", "DISABLED");
         }
 
-
-           /* if (useVuforia) {
-                int numStones = 0;
-                int numSkyStones = 0;
-
-                if (tfod != null) {
-                    // getUpdatedRecognitions() will return null if no new information is available since
-                    // the last time that call was made.
-                    List<Recognition> updatedRecognitions = getRecognitions();
-                    if (updatedRecognitions == null) {
-                        numStones = lastStones;
-                        numSkyStones = lastSkyStones;
-                    } else {
-                        numStones = updatedRecognitions.size();
-                        for (Recognition recognition : updatedRecognitions) {
-                            if (recognition.getLabel() == "Skystone") {
-                                numSkyStones++;
-                                numStones--;
-                            }
-                        }
-                        lastStones = numStones;
-                        lastSkyStones = numSkyStones;
-                    }
+        if (doVuforia) {
+            if (tfod != null) {
+                // getUpdatedRecognitions() will return null if no new information is available since
+                // the last time that call was made.
+                List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
+                if (updatedRecognitions != null) {
+                  recognitionsList = new ArrayList<>(updatedRecognitions);
                 }
+            }
+            telemetry.addData("Tensor", "config=%s, recogs=%d", getRingConfiguration(), recognitionsList.size());
+        } else {
+            telemetry.addData("Tensor", "DISABLED");
+        }
 
-                telemetry.addData("StoneDetect", "mode:%s, norm: %d, sky: %d, loc: %02.1f,  %02.1f,  %02.1f", stoneconfig, numStones, numSkyStones,
-                        leftEdgeSkyStone, rightEdgeSkyStone, widthSkyStone);
-            } else {
-                telemetry.addData("StoneDetect", "DISABLED");
-            } */
-
-        telemetry.addData("Status", "ran=%b, cncl=%b, time=%.2f", madeTheRun, canceled, getRuntime());
         telemetry.update();
     }
 
@@ -492,9 +439,7 @@ public abstract class AutoBase extends OpMode {
         // onto the next step, use (isBusy() || isBusy()) in the loop test.
         ElapsedTime motorOnTime = new ElapsedTime();
         boolean keepGoing = true;
-        while (keepGoing && (motorOnTime.seconds() < 30)) {
-
-
+        while (opModeIsActive() && keepGoing && (motorOnTime.seconds() < 30)) {
                 telemetry.addData("encoderDrive1", "Running at %7d, %7d",
                         leftDrive.getCurrentPosition(),
                         rightDrive.getCurrentPosition());
@@ -503,14 +448,13 @@ public abstract class AutoBase extends OpMode {
                         rightBackTarget);
                 keepGoing = rightDrive.isBusy() && leftDrive.isBusy();
 
-            if (keepGoing) {
+            if (opModeIsActive() && keepGoing) {
                 // Calculate PID correction = straightne out the line!
                 double correction = 0;
 
                 leftDrive.setPower(Math.abs(speed - correction));
                 rightDrive.setPower(Math.abs(speed + correction));
             }
-
             // telemetry.update();
             //sleep(100);
         }
@@ -542,18 +486,11 @@ public abstract class AutoBase extends OpMode {
      * Initialize the Vuforia localization engine.
      */
     private void initVuforia() {
-        /*
-         * Configure Vuforia by creating a Parameter object, and passing it to the Vuforia engine.
-         */
         VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
-
         parameters.vuforiaLicenseKey = VUFORIA_KEY;
         parameters.cameraName = hardwareMap.get(WebcamName.class, "Webcam");
-
         //  Instantiate the Vuforia engine
         vuforia = ClassFactory.getInstance().createVuforia(parameters);
-
-        // Loading trackables is not necessary for the TensorFlow Object Detection engine.
     }
 
     /**
@@ -572,7 +509,6 @@ public abstract class AutoBase extends OpMode {
     protected RingConfig getRingConfiguration()
     {
         RingConfig currentRings = RingConfig.UNDETERMINED;
-
         if (recognitionsList.size() <= 0) {
             currentRings = RingConfig.EMPTY;
         }
@@ -587,21 +523,45 @@ public abstract class AutoBase extends OpMode {
                 currentRings = RingConfig.SINGLE;
             }
         }
-        telemetry.addData("# Rings Detected", currentRings);
         return currentRings;
     }
 
-    protected RingConfig ringIdentifier() {
-        long currentTime = System.nanoTime();
-        while (currentTime < startTime + waitTime) {
-            // debug: telemt=try print nout
-            sleep(1);
-        }
+    protected void ratCrewWaitMillis(long millis){
+        long startTime = System.currentTimeMillis();
+        long currentTime = startTime;
+        long waitEndTime = currentTime + millis;
+        //long timeToGo = waitEndTime - currentTime;
+        long timeElapsed = currentTime - startTime;
+        while (opModeIsActive() && (timeElapsed < millis)) {
+            printStatus();
+            long waitSoFar = waitEndTime - currentTime;
 
+            //telemetry.addData("togo:", "%d", timeToGo);
+            telemetry.addData("elapsed:", "%d", timeElapsed);
+            telemetry.addData("millis:", "%d", millis);
+            telemetry.addData("currentTime:", "%d",  currentTime);
+            telemetry.addData("endTime:", "%d", waitEndTime);
+            telemetry.update();
+            sleep(100);
+
+            currentTime = System.currentTimeMillis();
+            //timeToGo = waitEndTime - currentTime;
+            timeElapsed = currentTime - startTime;
+        }
+    }
+
+    protected RingConfig ringIdentifier() {
+        ratCrewWaitMillis(WAIT_TIME);
+
+        List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
+        if (updatedRecognitions != null) {
+            // make a copy of the list
+            recognitionsList = new ArrayList<>(updatedRecognitions);
+        }
         telemetry.addData("# Object Detected", recognitionsList.size());
 
         // step through the list of recognitions and display boundary info.
-        int i = 0;
+        /*int i = 0;
 
         for (Recognition recognition : recognitionsList) {
             telemetry.addData(String.format("label (%d)", i), recognition.getLabel());
@@ -610,15 +570,12 @@ public abstract class AutoBase extends OpMode {
             telemetry.addData(String.format("  right,bottom (%d)", i), "%.03f , %.03f",
                     recognition.getRight(), recognition.getBottom());
         }
+        */
 
         RingConfig rc = getRingConfiguration();
-                telemetry.addData("RingConfig", "%s", rc);
-
-        // update our logs to the output.
-                telemetry.update();
-
+        telemetry.addData("RingIdent", "recogs=%d, config=%s", recognitionsList.size(), rc);
+        telemetry.update();
         return rc;
-
     }
 
     protected void openGate() {
@@ -628,5 +585,4 @@ public abstract class AutoBase extends OpMode {
     protected void closeGate() {
         gate.setPosition(0.0);
     }
-
 }
