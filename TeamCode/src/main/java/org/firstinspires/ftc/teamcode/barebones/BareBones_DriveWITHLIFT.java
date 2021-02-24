@@ -38,7 +38,7 @@ public class BareBones_DriveWITHLIFT extends OpMode {
             gate = hardwareMap.get(Servo.class, "Gate");
             leftDrive.setDirection(DcMotor.Direction.REVERSE);
             rightDrive.setDirection(DcMotor.Direction.FORWARD);
-            gate.setPosition(0.0);
+            gate.setPosition(1.0);
 
             // Set all motors to zero power.
             leftDrive.setPower(0);
@@ -94,9 +94,9 @@ public class BareBones_DriveWITHLIFT extends OpMode {
             telemetry.addData("right", "%.2f", rightPower);
 
             if(shut) {
-                gate.setPosition(1.0);
-            } else {
                 gate.setPosition(0.0);
+            } else {
+                gate.setPosition(1.0);
             }
         }
 

@@ -4,6 +4,7 @@ import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -49,6 +50,7 @@ public abstract class AutoBase extends OpMode {
     private boolean doMotors = true;
     private DcMotor leftDrive;
     private DcMotor rightDrive;
+    private Servo gate;
     private String motorTurnType = "none";
     private float motorTurnDestination = 0.0f;
     private float motorTurnAngleToGo = 0.0f;
@@ -118,6 +120,9 @@ public abstract class AutoBase extends OpMode {
             // Set all motors to zero power.
             leftDrive.setPower(0);
             rightDrive.setPower(0);
+
+            gate = hardwareMap.get(Servo.class, "Gate");
+            gate.setPosition(1.0);
         }
 
         initGyroscope();
@@ -614,6 +619,14 @@ public abstract class AutoBase extends OpMode {
 
         return rc;
 
+    }
+
+    protected void openGate() {
+        gate.setPosition(1.0);
+    }
+
+    protected void closeGate() {
+        gate.setPosition(0.0);
     }
 
 }
