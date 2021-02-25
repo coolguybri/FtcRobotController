@@ -10,14 +10,13 @@ public class AutoDropWobbler extends AutoBase {
     @Override
     public void ratCrewGo() {
 
-        //closeGate();
+        closeGate();
         sleep(500);
+        encoderDrive(65);
+        turnRight(90);
         encoderDrive(24);
-        sleep(1000);
-        //turnRight(90);
-        encoderDrive(24);
-        //openGate();
+        openGate();
         sleep(500);
-        //encoderDrive(-24);
+        encoderDrive(-24);
     }
 }
