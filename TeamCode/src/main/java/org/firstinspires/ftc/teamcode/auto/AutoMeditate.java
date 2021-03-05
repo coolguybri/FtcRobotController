@@ -18,6 +18,7 @@ public class AutoMeditate extends AutoBase {
 
     @Override
     public void ratCrewGo() {
+        ratCrewWaitMillis(20000);
     }
 
 }

@@ -61,6 +61,7 @@ public abstract class AutoBase extends LinearOpMode {
     private static final float COUNTS_PER_MOTOR = COUNTS_PER_MOTOR_TORKNADO;
     private static final float WHEEL_DIAMETER = 4.0f;
     private static final long WAIT_TIME = TimeUnit.SECONDS.toMillis(5L);
+    private static final float RAT_FUDGE = 0.98f;
 
     // Instance Members: Motors
     private boolean doMotors = true;
@@ -71,6 +72,17 @@ public abstract class AutoBase extends LinearOpMode {
     private float motorTurnDestination = 0.0f;
     private float motorTurnAngleToGo = 0.0f;
     private float motorTurnAngleAdjustedToGo = 0.0f;
+    private boolean isDriving = false;
+    private float driveAngleOffset = 0.0f;
+    private float driveAngleCorrection = 0.0f;
+    private int driveLeftStart = 0;
+    private int driveRightStart = 0;
+    private int driveLeftTarget = 0;
+    private int driveRightTarget = 0;
+    private double driveRightSpeed = 0.0f;
+    private double driveLeftSpeed = 0.0f;
+    private PIDController motorPid = new PIDController(.05, 0, 0);
+
 
     // Instance Members: Gyro
     private boolean doGyro = true;
@@ -89,6 +101,21 @@ public abstract class AutoBase extends LinearOpMode {
 
     // Called once, right after hitting the Init button.
     protected void ratCrewInit() {
+
+        // Init motor state machine.
+        motorTurnType = "none";
+        motorTurnDestination = 0.0f;
+        motorTurnAngleToGo = 0.0f;
+        motorTurnAngleAdjustedToGo = 0.0f;
+        isDriving = false;
+        driveLeftStart = 0;
+        driveRightStart = 0;
+        driveLeftTarget = 0;
+        driveRightTarget = 0;
+        driveRightSpeed = 0.0f;
+        driveLeftSpeed = 0.0f;
+        driveAngleOffset = 0.0f;
+        driveAngleCorrection = 0.0f;
 
         // TODO: push into initMotor function
         if (doMotors) {
@@ -357,10 +384,15 @@ public abstract class AutoBase extends LinearOpMode {
         telemetry.addData("Run", "madetheRun=%b, runTime: %.1f, stopped=%b", madeTheRun, getRuntime(), isStopRequested());
 
         if (doMotors) {
-           telemetry.addData("Motor", "left:%02.1f, (%d), rigt: %02.1f, (%d)",
-                    leftDrive.getPower(), leftDrive.getCurrentPosition(), rightDrive.getPower(), rightDrive.getCurrentPosition());
-            telemetry.addData("Motor: turn", "type=%s, now: %02.1f, dest: %02.1f, togo= %02.1f, togo2= %02.1f",
+            int leftPos = leftDrive.getCurrentPosition();
+            int rightPos = rightDrive.getCurrentPosition();
+
+            telemetry.addData("Motor", "left: %02.1f (%d), right: %02.1f (%d), driving=%b, off=%02.1f, corr=%02.1f",
+                    leftDrive.getPower(), leftPos, rightDrive.getPower(), rightPos, isDriving, driveAngleOffset, driveAngleCorrection);
+            telemetry.addData("MotorTurn", "type=%s, now: %02.1f, dest: %02.1f, togo=%02.1f, togo2=%02.1f",
                     motorTurnType, this.getGyroscopeAngle(), motorTurnDestination, motorTurnAngleToGo, motorTurnAngleAdjustedToGo);
+            telemetry.addData("MotorLeft", "start=%d, curr=%d, end=%d, pwr=%02.1f", driveLeftStart, leftPos, driveLeftTarget, driveLeftSpeed);
+            telemetry.addData("MotorRight", "start=%d, curr=%d, end=%d, pwr=%02.1f", driveRightStart, rightPos, driveRightTarget, driveRightSpeed);
         } else {
             telemetry.addData("Motor", "DISABLED");
         }
@@ -392,44 +424,52 @@ public abstract class AutoBase extends LinearOpMode {
     }
 
     protected void encoderDrive(double leftInches, double rightInches, double speed) {
+        encoderDrive(leftInches, rightInches, speed, getGyroscopeAngle());
+    }
 
-        float startAngle = getGyroscopeAngle();
+    protected void encoderDrive(double leftInches, double rightInches, double speed, double desiredAngle) {
+
 
         // Jump out if the motors are turned off.
         if (!doMotors)
             return;
 
-        double countsPerInch = COUNTS_PER_MOTOR / (WHEEL_DIAMETER * Math.PI);
-
-        // Get the current position.
-        int leftBackStart = leftDrive.getCurrentPosition();
-        int rightBackStart = rightDrive.getCurrentPosition();
-        int leftFrontStart = 0;
-        int rightFrontStart = 0;
-        telemetry.addData("encoderDrive", "Starting %7d, %7d, %7d, %7d",
-                leftBackStart, rightBackStart, leftFrontStart, rightFrontStart);
-
-        // Determine new target position, and pass to motor controller
-        int leftBackTarget = leftBackStart + (int) (leftInches * countsPerInch);
-        int rightBackTarget = rightBackStart + (int) (rightInches * countsPerInch);
-
-        leftDrive.setTargetPosition(leftBackTarget);
-        rightDrive.setTargetPosition(rightBackTarget);
-        telemetry.addData("encoderDrive", "Target %7d, %7d",
-                leftBackTarget, rightBackTarget);
-
-        // Throttle speed down as we approach our target
-        if ((Math.abs(leftInches) < 8.0) || (Math.abs(rightInches) < 8.0)) {
-            speed *= 0.5;
-        } else  if ((Math.abs(leftInches) < 5.0) || (Math.abs(rightInches) < 5.0)) {
-            speed *= 0.25;
+        if (desiredAngle >= 0.0f) {
+            motorPid.reset();
+            motorPid.setSetpoint(0);
+            motorPid.setOutputRange(0, speed);
+            motorPid.setInputRange(-90, 90);
+            motorPid.enable();
         }
+
+        float startAngle = getGyroscopeAngle();
+        double countsPerInch = COUNTS_PER_MOTOR / (WHEEL_DIAMETER * Math.PI);
+        int softStartDuration = 2000; // in milliseconds
+        int brakeOffsetOne = (int) (18.0f * countsPerInch);
+        int brakeOffsetTwo = (int) (8.0f * countsPerInch);
+
+        // Get the starting position of the encoders.
+        isDriving = true;
+        driveLeftStart = leftDrive.getCurrentPosition();
+        driveRightStart = rightDrive.getCurrentPosition();
+
+        int leftNew = (int) (leftInches * countsPerInch * RAT_FUDGE);
+        int rightNew = (int) (rightInches * countsPerInch * RAT_FUDGE);
+        driveLeftTarget = driveLeftStart + leftNew;
+        driveRightTarget = driveRightStart + rightNew;
+        leftDrive.setTargetPosition(driveLeftTarget);
+        rightDrive.setTargetPosition(driveRightTarget);
 
         // Turn On RUN_TO_POSITION
         leftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         rightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        leftDrive.setPower(Math.abs(speed));
-        rightDrive.setPower(Math.abs(speed));
+
+        // Compute the braking zones.
+        int leftBrakeOne = driveLeftStart + brakeOffsetOne; // how many remaining will trigger it
+        int rightBrakeOne = driveRightStart + brakeOffsetOne;
+        int leftBrakeTwo = driveLeftStart + brakeOffsetTwo;
+        int rightBrakeTwo = driveRightStart + brakeOffsetTwo;
+
 
         // keep looping while we are still active, and there is time left, and both motors are running.
         // Note: We use (isBusy() && isBusy()) in the loop test, which means that when EITHER motor hits
@@ -440,46 +480,62 @@ public abstract class AutoBase extends LinearOpMode {
         ElapsedTime motorOnTime = new ElapsedTime();
         boolean keepGoing = true;
         while (opModeIsActive() && keepGoing && (motorOnTime.seconds() < 30)) {
-                telemetry.addData("encoderDrive1", "Running at %7d, %7d",
-                        leftDrive.getCurrentPosition(),
-                        rightDrive.getCurrentPosition());
-                telemetry.addData("encoderDrive2", "Running to %7d, %7d",
-                        leftBackTarget,
-                        rightBackTarget);
-                keepGoing = rightDrive.isBusy() && leftDrive.isBusy();
+            printStatus();
 
-            if (opModeIsActive() && keepGoing) {
-                // Calculate PID correction = straightne out the line!
-                double correction = 0;
+            int leftPos = leftDrive.getCurrentPosition();
+            int rightPos = rightDrive.getCurrentPosition();
 
-                leftDrive.setPower(Math.abs(speed - correction));
-                rightDrive.setPower(Math.abs(speed + correction));
+            // soft start
+            double currSpeed = speed;
+            double elapsed = motorOnTime.milliseconds();
+            if (elapsed < softStartDuration) {
+                double ratio = elapsed / softStartDuration;
+                currSpeed *= ratio;
             }
-            // telemetry.update();
-            //sleep(100);
+
+            // Throttle speed down as we approach our target
+            int remainingLeft = driveLeftTarget - leftPos;
+            int remainingRight = driveRightTarget - rightPos;
+            if ((Math.abs(remainingLeft) < brakeOffsetTwo) || (Math.abs(remainingRight) < brakeOffsetTwo)) {
+                currSpeed *= 0.25;
+            } else if ((Math.abs(remainingLeft) < brakeOffsetOne) || (Math.abs(remainingRight) < brakeOffsetOne)) {
+                currSpeed *= 0.5;
+            }
+
+            // Calculate PID correction = straighten out the line!
+            if (desiredAngle >= 0.0f) {
+                float currentAngle = getGyroscopeAngle();
+                driveAngleOffset = getAngleDifference(currentAngle, (float)desiredAngle);
+                driveAngleCorrection = (float) motorPid.performPID(driveAngleOffset);
+                if ((leftInches < 0) && (rightInches < 0)) {
+                    driveAngleCorrection = -driveAngleCorrection;
+                }
+            }
+
+            // Record and apply the desired power level.
+            driveLeftSpeed = currSpeed - driveAngleCorrection;
+            driveRightSpeed = currSpeed + driveAngleCorrection;
+            leftDrive.setPower(Math.abs(driveLeftSpeed));
+            rightDrive.setPower(Math.abs(driveRightSpeed));
+
+            keepGoing = rightDrive.isBusy() && leftDrive.isBusy();
         }
 
         // Turn off RUN_TO_POSITION
+        printStatus();
         leftDrive.setPower(0);
         rightDrive.setPower(0);
         leftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
-        /*telemetry.addData("encoderDrive", "Finished (%s) at %7d,%7d,%7d,%7d to [%7d,%7d,%7d,%7d] (%7d,%7d,%7d,%7d)",
-                motorOnTime.toString(),
-                leftBackStart,
-                rightBackStart,
-                leftFrontStart,
-                rightFrontStart,
-                motorBackLeft.getCurrentPosition(),
-                motorBackRight.getCurrentPosition(),
-                motorFrontLeft.getCurrentPosition(),
-                motorFrontRight.getCurrentPosition(),
-                leftBackTarget,
-                rightBackTarget,
-                leftFrontTarget,
-                rightFrontTarget); */
-        // sleep(100);
+        driveLeftStart = 0;
+        driveRightStart = 0;
+        driveLeftTarget = 0;
+        driveRightTarget = 0;
+        driveLeftSpeed = 0.0f;
+        driveRightSpeed = 0.0f;
+        driveAngleOffset = 0.0f;
+        driveAngleCorrection = 0.0f;
+        isDriving = false;
     }
 
     /**
@@ -529,23 +585,13 @@ public abstract class AutoBase extends LinearOpMode {
     protected void ratCrewWaitMillis(long millis){
         long startTime = System.currentTimeMillis();
         long currentTime = startTime;
-        long waitEndTime = currentTime + millis;
-        //long timeToGo = waitEndTime - currentTime;
         long timeElapsed = currentTime - startTime;
         while (opModeIsActive() && (timeElapsed < millis)) {
             printStatus();
-            long waitSoFar = waitEndTime - currentTime;
 
-            //telemetry.addData("togo:", "%d", timeToGo);
-            telemetry.addData("elapsed:", "%d", timeElapsed);
-            telemetry.addData("millis:", "%d", millis);
-            telemetry.addData("currentTime:", "%d",  currentTime);
-            telemetry.addData("endTime:", "%d", waitEndTime);
-            telemetry.update();
             sleep(100);
 
             currentTime = System.currentTimeMillis();
-            //timeToGo = waitEndTime - currentTime;
             timeElapsed = currentTime - startTime;
         }
     }
@@ -585,4 +631,14 @@ public abstract class AutoBase extends LinearOpMode {
     protected void closeGate() {
         gate.setPosition(0.0);
     }
+
+    float getAngleDifference(float from, float to)
+    {
+        float difference = to - from;
+        while (difference < -180) difference += 360;
+        while (difference > 180) difference -= 360;
+        return difference;
+    }
+
+
 }
