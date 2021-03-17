@@ -59,7 +59,7 @@ public abstract class AutoBase extends LinearOpMode {
     private static final float MOTOR_TURN_SPEED = 0.6f;
     private static final float MOTOR_MOVE_SPEED = 0.8f;
     private static final float COUNTS_PER_MOTOR = COUNTS_PER_MOTOR_TORKNADO;
-    private static final float WHEEL_DIAMETER = 4.0f;
+    private static final float WHEEL_DIAMETER = 5.0f;
     private static final long WAIT_TIME = TimeUnit.SECONDS.toMillis(5L);
     private static final float RAT_FUDGE = 0.98f;
 
@@ -640,5 +640,22 @@ public abstract class AutoBase extends LinearOpMode {
         return difference;
     }
 
+    protected void firstBox() {
+        encoderDrive(72);
+        turnRight(90);
+        encoderDrive(12);
+    }
+
+    protected void secondBox() {
+        encoderDrive(96);
+        turnLeft(90);
+        encoderDrive(12);
+    }
+
+    protected void thirdBox() {
+        encoderDrive(120);
+        turnRight(90);
+        encoderDrive(12);
+    }
 
 }
