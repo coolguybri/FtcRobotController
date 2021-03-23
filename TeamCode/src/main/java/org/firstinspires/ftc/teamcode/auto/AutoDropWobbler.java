@@ -11,12 +11,12 @@ public class AutoDropWobbler extends AutoBase {
     public void ratCrewGo() {
 
         closeGate();
-        sleep(500);
+        ratCrewWaitMillis(500);
         encoderDrive(65);
         turnRight(90);
         encoderDrive(24);
         openGate();
-        sleep(500);
+        ratCrewWaitMillis(500);
         encoderDrive(-24);
     }
 }
