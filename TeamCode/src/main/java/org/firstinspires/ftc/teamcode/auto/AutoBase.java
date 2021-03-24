@@ -641,21 +641,27 @@ public abstract class AutoBase extends LinearOpMode {
     }
 
     protected void firstBox() {
-        encoderDrive(72);
-        turnRight(90);
-        encoderDrive(12);
+        turnRight(5);
+        encoderDrive(74);
+        openGate();
+        ratCrewWaitMillis(5000);
+        encoderDrive(-2);
     }
 
     protected void secondBox() {
+        turnLeft(10);
         encoderDrive(96);
-        turnLeft(90);
-        encoderDrive(12);
+        openGate();
+        ratCrewWaitMillis(5000);
+        encoderDrive(-25);
     }
 
     protected void thirdBox() {
+        turnRight(6);
         encoderDrive(120);
-        turnRight(90);
-        encoderDrive(12);
+        openGate();
+        ratCrewWaitMillis(5000);
+        encoderDrive(-33);
     }
 
 }
