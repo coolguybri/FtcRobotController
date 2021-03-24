@@ -13,12 +13,12 @@ import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
 /**
  */
-@Autonomous(name="Meditate 20", group="AutoTest")
-public class AutoMeditate extends AutoBase {
+@Autonomous(name="First Box", group="AutoTest")
+public class AutoFirstBox extends AutoBase {
 
     @Override
     public void ratCrewGo() {
-        ratCrewWaitMillis(20000);
+        firstBox();
     }
 
 }
