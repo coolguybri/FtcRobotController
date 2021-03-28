@@ -14,7 +14,7 @@ public class AutoFinalMode extends AutoBase {
         RingConfig rc = ringIdentifier();
         printStatus();
 
-        ratCrewWaitMillis(2000);
+        ratCrewWaitMillis(500);
         telemetry.addData("RingSeek", "rc=%s", rc);
         telemetry.update();
 
