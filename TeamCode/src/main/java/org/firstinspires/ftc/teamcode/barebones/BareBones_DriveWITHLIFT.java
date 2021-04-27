@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.util.Range;
 
 /**
  */
-@TeleOp(name="BareBones: ServoDrive", group="BareBones")
+@TeleOp(name="FINALDRIVE", group="AAA")
 public class BareBones_DriveWITHLIFT extends OpMode {
 
     // Instance Members.
@@ -18,6 +18,10 @@ public class BareBones_DriveWITHLIFT extends OpMode {
 
     private boolean useArm = true;
     private boolean useClaw = true;
+
+    private boolean useShooter = true;
+    private DcMotor sho;
+    private DcMotor oter;
 
     private DcMotor armMotor;
     private Servo clawServo;
@@ -63,9 +67,14 @@ public class BareBones_DriveWITHLIFT extends OpMode {
             armMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         }
 
-            if (useClaw) {
+        if (useClaw) {
             // Initialize Motors, finding them through the hardware map.
             clawServo = hardwareMap.get(Servo.class, "servoClaw");
+        }
+
+        if(useShooter) {
+            sho = hardwareMap.get(DcMotor.class, "sho");
+            oter = hardwareMap.get(DcMotor.class, "oter");
         }
 
             telemetry.addData("Yo", "Initialized Drive, motors=%b", doMotors);
@@ -103,31 +112,42 @@ public class BareBones_DriveWITHLIFT extends OpMode {
         telemetry.addData("Status", "Run Clock: %.2f", getRuntime());
 
 
-    if (useArm) {
-        // POV Mode uses left stick to go forward, and right stick to turn.
-        // - This uses basic math to combine motions and is easier to drive straight.
-        boolean armUp = gamepad1.dpad_up;
-        boolean armDown = gamepad1.dpad_down;
+        if (useArm) {
+            // POV Mode uses left stick to go forward, and right stick to turn.
+            // - This uses basic math to combine motions and is easier to drive straight.
+            boolean armUp = gamepad1.dpad_up;
+            boolean armDown = gamepad1.dpad_down;
 
-        if (armUp) {
-            armMotor.setPower(-0.5);
+            if (armUp) {
+                armMotor.setPower(-0.5);
+            }
+            else if (armDown){
+                armMotor.setPower(0.5);
+            }
+            else {
+                armMotor.setPower(0);
+            }
         }
-        else if (armDown){
-            armMotor.setPower(0.5);
-        }
-        else {
-            armMotor.setPower(0);
-        }
-    }
 
         if (useClaw) {
-        if (gamepad1.left_bumper) {
-            clawPince();
+            if (gamepad1.left_bumper) {
+                clawPince();
+            }
+            else if (gamepad1.right_bumper) {
+                clawRelease();
+            }
         }
-        else if (gamepad1.right_bumper) {
-            clawRelease();
+
+        if(useShooter) {
+            float shooter = gamepad1.right_trigger;
+            if(shooter > 0.0) {
+                sho.setPower(1.0);
+                oter.setPower(1.0);
+            } else {
+                sho.setPower(0.0);
+                oter.setPower(0.0);
+            }
         }
-    }
 
         telemetry.addData("Status", "Run Clock: %.2f", getRuntime());
 }
