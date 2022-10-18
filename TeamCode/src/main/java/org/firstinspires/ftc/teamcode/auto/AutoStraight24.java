@@ -4,7 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 /**
  */
-@Autonomous(name="Straight 24", group="AutoTest")
+@Autonomous(name="Straight 20flynn", group="AutoTest")
 public class AutoStraight24 extends AutoBase {
 
     @Override

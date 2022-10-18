@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.util.Range;
 
 /**
  */
-@TeleOp(name="BareBones: EncoderDrive", group="BareBones")
+//@TeleOp(name="BareBones: EncoderDrive", group="BareBones")
 public class BareBones_EncoderDrive extends OpMode {
 
     // Instance Members.

@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.util.Range;
 
 /**
  */
-@TeleOp(name="BareBones: Arm", group="BareBones")
+//@TeleOp(name="BareBones: Arm", group="BareBones")
 public class BareBones_Arm extends OpMode {
 
     // Instance Members.

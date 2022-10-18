@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.util.Range;
 
 /**
  */
-@TeleOp(name="FINALDRIVE", group="AAA")
+//@TeleOp(name="FINALDRIVE", group="AAA")
 public class BareBones_DriveWITHLIFT extends OpMode {
 
     // Instance Members.

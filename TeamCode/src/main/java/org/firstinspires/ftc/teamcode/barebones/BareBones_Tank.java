@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 /**
  */
-@TeleOp(name="BareBones: Tank", group="BareBones")
+//@TeleOp(name="BareBones: Tank", group="BareBones")
 public class BareBones_Tank extends OpMode {
 
     // Instance Members.

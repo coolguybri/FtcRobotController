@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.util.Range;
 
 /**
  */
-@TeleOp(name="BareBones: Drive", group="BareBones")
+@TeleOp(name="Fruity Flame Go", group="BareBones")
 public class BareBones_Drive extends OpMode {
 
     // Instance Members.
