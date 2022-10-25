@@ -4,18 +4,23 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
 /**
  */
-@TeleOp(name="BareBones Drive", group="BareBones")
-public class BareBones_Drive extends OpMode {
+@TeleOp(name="Fruity Flame... Go!", group="AAA")
+public class BareBones_FruityFlameMain extends OpMode {
 
     // Instance Members.
     private boolean doMotors = true;
+    private boolean doServos = true;
     private DcMotor leftDrive;
     private DcMotor rightDrive;
 
+    private Servo gate;
+
+    private double angleHand;
 
 
 
@@ -40,7 +45,14 @@ public class BareBones_Drive extends OpMode {
             rightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         }
 
+        if (doServos) {
+            // Initialize Motors, finding them through the hardware map.
+            gate = hardwareMap.get(Servo.class, "gate");
+        }
+
         telemetry.addData("Yo", "Initialized Drive, motors=%b", doMotors);
+        telemetry.addData("Yo", "Initialized Gate, servo=%b", doServos);
+
     }
 
     // Called repeatedly, right after hitting start, up until hitting stop.
@@ -62,6 +74,29 @@ public class BareBones_Drive extends OpMode {
             telemetry.addData("right", "%.2f", rightPower);
         }
 
+        if (doServos) {
+            if (gamepad1.left_bumper) {
+                clawPince();
+            }
+            else if (gamepad1.right_bumper) {
+                clawRelease();
+            }
+        }
+
         telemetry.addData("Status", "Run Clock: %.2f", getRuntime());
+    }
+
+    private void clawPince() {
+        if (doServos) {
+            angleHand = 0.2;
+            gate.setPosition(angleHand);
+        }
+    }
+
+    private void clawRelease() {
+        if (doServos) {
+            angleHand = 0.8;
+            gate.setPosition(angleHand);
+        }
     }
 }
