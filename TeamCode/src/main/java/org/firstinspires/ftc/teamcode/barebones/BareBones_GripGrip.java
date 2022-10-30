@@ -9,7 +9,7 @@ import com.qualcomm.robotcore.util.Range;
 
 /**
  */
-@TeleOp(name="BareBones: Grip", group="BareBones")
+//@TeleOp(name="BareBones: Grip", group="BareBones")
 public class BareBones_GripGrip extends OpMode {
 
     // Instance Members.

@@ -93,7 +93,7 @@ public abstract class AutoBase extends LinearOpMode {
     private boolean madeTheRun = false;
 
     // Instance Members: Vuforia
-    private boolean doVuforia = true;
+    private boolean doVuforia = false;
     private VuforiaLocalizer vuforia;
     private TFObjectDetector tfod;
     private List<Recognition> recognitionsList = new ArrayList<>();

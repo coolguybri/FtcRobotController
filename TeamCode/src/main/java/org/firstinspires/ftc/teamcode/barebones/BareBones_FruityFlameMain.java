@@ -3,26 +3,23 @@ package org.firstinspires.ftc.teamcode.barebones;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
 /**
  */
-//@TeleOp(name="BareBones: Arm", group="BareBones")
-public class BareBones_Arm extends OpMode {
+@TeleOp(name="Fruity Flame... Go!", group="AAA")
+public class BareBones_FruityFlameMain extends OpMode {
 
     // Instance Members.
-    private boolean useMotors = true;
-    private boolean useArm = true;
-    private boolean useClaw = true;
-
-    private DcMotor armMotor;
-    private Servo clawServo;
-
+    private boolean doMotors = true;
+    private boolean doServos = true;
     private DcMotor leftDrive;
     private DcMotor rightDrive;
 
-    //for servo
+    private Servo gate;
+
     private double angleHand;
 
 
@@ -31,7 +28,7 @@ public class BareBones_Arm extends OpMode {
     @Override
     public void init() {
 
-        if (useMotors) {
+        if (doMotors) {
             // Initialize Motors, finding them through the hardware map.
             leftDrive = hardwareMap.get(DcMotor.class, "motorLeft");
             rightDrive = hardwareMap.get(DcMotor.class, "motorRight");
@@ -48,33 +45,21 @@ public class BareBones_Arm extends OpMode {
             rightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         }
 
-        if (useArm) {
+        if (doServos) {
             // Initialize Motors, finding them through the hardware map.
-            armMotor = hardwareMap.get(DcMotor.class, "motorArm");
-            armMotor.setDirection(DcMotor.Direction.FORWARD);
-
-            // arm to Zero power
-            armMotor.setPower(0);
-
-            armMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            gate = hardwareMap.get(Servo.class, "gate");
         }
 
-        if (useClaw) {
-            // Initialize Motors, finding them through the hardware map.
-            clawServo = hardwareMap.get(Servo.class, "servoClaw");
-        }
+        telemetry.addData("Yo", "Initialized Drive, motors=%b", doMotors);
+        telemetry.addData("Yo", "Initialized Gate, servo=%b", doServos);
 
-        telemetry.addData("Yo", "Initialized Drive, motors=%b", useMotors);
-        telemetry.addData("Yo", "Initialized Arm, motors=%b", useArm);
-        telemetry.addData("Yo", "Initialized Claw, servo=%b", useClaw);
     }
-
 
     // Called repeatedly, right after hitting start, up until hitting stop.
     @Override
     public void loop() {
 
-        if (useMotors) {
+        if (doMotors) {
             // POV Mode uses left stick to go forward, and right stick to turn.
             // - This uses basic math to combine motions and is easier to drive straight.
             double drive = -gamepad1.left_stick_y;
@@ -89,24 +74,7 @@ public class BareBones_Arm extends OpMode {
             telemetry.addData("right", "%.2f", rightPower);
         }
 
-        if (useArm) {
-            // POV Mode uses left stick to go forward, and right stick to turn.
-            // - This uses basic math to combine motions and is easier to drive straight.
-            boolean armUp = gamepad1.dpad_up;
-            boolean armDown = gamepad1.dpad_down;
-
-            if (armUp) {
-                armMotor.setPower(-0.5);
-            }
-            else if (armDown){
-                armMotor.setPower(0.5);
-            }
-            else {
-                armMotor.setPower(0);
-            }
-        }
-
-        if (useClaw) {
+        if (doServos) {
             if (gamepad1.left_bumper) {
                 clawPince();
             }
@@ -118,18 +86,17 @@ public class BareBones_Arm extends OpMode {
         telemetry.addData("Status", "Run Clock: %.2f", getRuntime());
     }
 
-
     private void clawPince() {
-        if (useClaw) {
+        if (doServos) {
             angleHand = 0.2;
-            clawServo.setPosition(angleHand);
+            gate.setPosition(angleHand);
         }
     }
 
     private void clawRelease() {
-        if (useClaw) {
+        if (doServos) {
             angleHand = 0.8;
-            clawServo.setPosition(angleHand);
+            gate.setPosition(angleHand);
         }
     }
 }
