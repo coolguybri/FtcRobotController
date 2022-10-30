@@ -53,7 +53,7 @@ import java.util.concurrent.TimeUnit;
  * IMPORTANT: In order to use this OpMode, you need to obtain your own Vuforia license key as
  * is explained below.
  */
-@TeleOp(name = "BareBones: RingDetection", group = "BareBones")
+//@TeleOp(name = "BareBones: RingDetection", group = "BareBones")
 public class BareBones_RingDetection extends LinearOpMode {
 
     public enum RingConfig
