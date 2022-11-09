@@ -14,11 +14,14 @@ public class BareBones_FruityFlameMain extends OpMode {
 
     // Instance Members.
     private boolean doMotors = true;
-    private boolean doServos = true;
+    private boolean doGate = true;
+    private boolean doArm = true;
     private DcMotor leftDrive;
     private DcMotor rightDrive;
+    private DcMotor arm;
 
     private Servo gate;
+    private Servo finger;
 
     private double angleHand;
 
@@ -45,13 +48,18 @@ public class BareBones_FruityFlameMain extends OpMode {
             rightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         }
 
-        if (doServos) {
+        if (doGate) {
             // Initialize Motors, finding them through the hardware map.
             gate = hardwareMap.get(Servo.class, "gate");
         }
 
+        if(doArm) {
+            arm = hardwareMap.get(DcMotor.class, "arm");
+            finger = hardwareMap.get(Servo.class, "finger");
+        }
+
         telemetry.addData("Yo", "Initialized Drive, motors=%b", doMotors);
-        telemetry.addData("Yo", "Initialized Gate, servo=%b", doServos);
+        telemetry.addData("Yo", "Initialized Gate, servo=%b", doGate);
 
     }
 
@@ -74,27 +82,46 @@ public class BareBones_FruityFlameMain extends OpMode {
             telemetry.addData("right", "%.2f", rightPower);
         }
 
-        if (doServos) {
+        if (doGate) {
             if (gamepad1.left_bumper) {
                 clawPince();
+            } else if (gamepad1.right_bumper) {
+                clawRelease(); 
             }
-            else if (gamepad1.right_bumper) {
-                clawRelease();
+        }
+
+        if(doArm) {
+            //controls the actual arm
+            if (gamepad1.dpad_up) {
+                arm.setPower(1.0);
+            } else if (gamepad1.dpad_down) {
+                arm.setPower(-1.0);
+            } else {
+                arm.setPower(0);
+            }
+
+            //controls the finger with the right trigger
+            if (gamepad1.right_trigger > 0) {
+                finger.setPosition(1.0);
+            } else if (gamepad1.right_trigger <= 0) {
+                finger.setPosition(0.0);
             }
         }
 
         telemetry.addData("Status", "Run Clock: %.2f", getRuntime());
     }
 
+
+
     private void clawPince() {
-        if (doServos) {
+        if (doGate) {
             angleHand = 0.2;
             gate.setPosition(angleHand);
         }
     }
 
     private void clawRelease() {
-        if (doServos) {
+        if (doGate) {
             angleHand = 0.8;
             gate.setPosition(angleHand);
         }
