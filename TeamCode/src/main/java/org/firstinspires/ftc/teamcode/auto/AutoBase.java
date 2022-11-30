@@ -43,8 +43,8 @@ public abstract class AutoBase extends LinearOpMode {
     // https://asset.pitsco.com/sharedimages/resources/torquenado_dcmotorspecifications.pdf
     static final float COUNTS_PER_MOTOR_TORKNADO = 1440;  // 24 cycles per revolution, times 60:1 geared down.
     // http://www.revrobotics.com/content/docs/Encoder-Guide.pdf
-    static final float COUNTS_PER_MOTOR_REV_HDHEX_40  = 1120; // 28 cycles per rotation at the main motor, times 40:1 geared down
-    static final float COUNTS_PER_MOTOR_REV_HDHEX_20 = 560; // 28 cycles per rotation at the main motor, times 20:1 geared down
+    //static final float COUNTS_PER_MOTOR_REV_HDHEX_40  = 1120; // 28 cycles per rotation at the main motor, times 40:1 geared down
+    //static final float COUNTS_PER_MOTOR_REV_HDHEX_20 = 560; // 28 cycles per rotation at the main motor, times 20:1 geared down
 
     // Vuforia Constants
     private static final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
@@ -68,6 +68,7 @@ public abstract class AutoBase extends LinearOpMode {
     private DcMotor leftDrive;
     private DcMotor rightDrive;
     private Servo gate;
+    private Servo finger;
     private String motorTurnType = "none";
     private float motorTurnDestination = 0.0f;
     private float motorTurnAngleToGo = 0.0f;
@@ -93,7 +94,7 @@ public abstract class AutoBase extends LinearOpMode {
     private boolean madeTheRun = false;
 
     // Instance Members: Vuforia
-    private boolean doVuforia = false;
+    private boolean doVuforia = true;
     private VuforiaLocalizer vuforia;
     private TFObjectDetector tfod;
     private List<Recognition> recognitionsList = new ArrayList<>();
@@ -137,9 +138,13 @@ public abstract class AutoBase extends LinearOpMode {
             leftDrive.setPower(0);
             rightDrive.setPower(0);
 
-            gate = hardwareMap.get(Servo.class, "Gate");
+            gate = hardwareMap.get(Servo.class, "gate");
             gate.setPosition(1.0);
+
+            finger = hardwareMap.get(Servo.class, "finger");
+            finger.setPosition(0.0);
         }
+
         initGyroscope();
 
         if (doVuforia){
