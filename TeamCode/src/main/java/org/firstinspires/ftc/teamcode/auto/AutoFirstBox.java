@@ -13,7 +13,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
 /**
  */
-@Autonomous(name="First Box", group="AutoTest")
+//@Autonomous(name="Box First", group="AutoTest")
 public class AutoFirstBox extends AutoBase {
 
     @Override

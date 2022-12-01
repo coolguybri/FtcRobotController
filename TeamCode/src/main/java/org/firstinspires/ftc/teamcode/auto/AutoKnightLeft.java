@@ -20,8 +20,8 @@ public class AutoKnightLeft extends AutoBase {
 
     @Override
     public void ratCrewGo() {
-        encoderDrive(48);
+        encoderDrive(55);
         turnLeft(90);
-        encoderDrive(24);
+        encoderDrive(20);
     }
 }
