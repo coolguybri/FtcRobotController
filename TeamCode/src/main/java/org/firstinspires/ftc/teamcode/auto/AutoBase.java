@@ -1,28 +1,18 @@
 package org.firstinspires.ftc.teamcode.auto;
 
-import com.qualcomm.hardware.bosch.BNO055IMU;
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
-
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
-import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
-
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
-import org.firstinspires.ftc.teamcode.barebones.BareBones_RingDetection;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -42,24 +32,22 @@ public abstract class AutoBase extends LinearOpMode {
     // MAGIC NUMBERS for the motor encoders
     // https://asset.pitsco.com/sharedimages/resources/torquenado_dcmotorspecifications.pdf
     static final float COUNTS_PER_MOTOR_TORKNADO = 1440;  // 24 cycles per revolution, times 60:1 geared down.
-    // http://www.revrobotics.com/content/docs/Encoder-Guide.pdf
-    //static final float COUNTS_PER_MOTOR_REV_HDHEX_40  = 1120; // 28 cycles per rotation at the main motor, times 40:1 geared down
-    //static final float COUNTS_PER_MOTOR_REV_HDHEX_20 = 560; // 28 cycles per rotation at the main motor, times 20:1 geared down
 
     // Vuforia Constants
-    private static final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
-    private static final String LABEL_FIRST_ELEMENT = "Quad";
-    private static final String LABEL_SECOND_ELEMENT = "Single";
+    private static final String TFOD_MODEL_ASSET = "PowerPlay.tflite";
+    private static final String[] LABELS = {
+            "1 Bolt",
+            "2 Bulb",
+            "3 Panel"
+    };
     private static final String VUFORIA_KEY =
             "AfgOBrf/////AAABmRjMx12ilksPnWUyiHDtfRE42LuceBSFlCTIKmmNqCn2EOk3I4NtDCSr0wCLFxWPoLR2qHKraX49ofQ2JknI76SJS5Hy8cLbIN+1GlFDqC8ilhuf/Y1yDzKN6a4n0fYWcEPlzHRc8C1V+D8vZ9QjoF3r//FDDtm+M3qlmwA7J/jNy4nMSXWHPCn2IUASoNqybTi/CEpVQ+jEBOBjtqxNgb1CEdkFJrYGowUZRP0z90+Sew2cp1DJePT4YrAnhhMBOSCURgcyW3q6Pl10XTjwB4/VTjF7TOwboQ5VbUq0wO3teE2TXQAI53dF3ZUle2STjRH0Rk8H94VtHm9u4uitopFR7zmxVl3kQB565EUHwfvG";
 
-    private static final int NUDGE_TIME = 1;
     private static final float NUDGE_ANGLE = 4.0f;
-    private static final float NORMALIZE_ANGLE = 360.0f;
     private static final float MOTOR_TURN_SPEED = 0.6f;
     private static final float MOTOR_MOVE_SPEED = 0.8f;
     private static final float COUNTS_PER_MOTOR = COUNTS_PER_MOTOR_TORKNADO;
-    private static final float WHEEL_DIAMETER = 5.0f;
+    private static final float WHEEL_DIAMETER = 4.0f;
     private static final long WAIT_TIME = TimeUnit.SECONDS.toMillis(5L);
     private static final float RAT_FUDGE = 0.98f;
 
@@ -67,6 +55,7 @@ public abstract class AutoBase extends LinearOpMode {
     private boolean doMotors = true;
     private DcMotor leftDrive;
     private DcMotor rightDrive;
+    private DcMotor arm;
     private Servo gate;
     private Servo finger;
     private String motorTurnType = "none";
@@ -84,13 +73,12 @@ public abstract class AutoBase extends LinearOpMode {
     private double driveLeftSpeed = 0.0f;
     private PIDController motorPid = new PIDController(.05, 0, 0);
 
-
     // Instance Members: Gyro
     private boolean doGyro = true;
-    private BNO055IMU bosch;
+    private IMU imu;
 
     // Instance Members: Core
-    private long startTime =  System.nanoTime();
+    private long startTime = System.nanoTime();
     private boolean madeTheRun = false;
 
     // Instance Members: Vuforia
@@ -98,7 +86,6 @@ public abstract class AutoBase extends LinearOpMode {
     private VuforiaLocalizer vuforia;
     private TFObjectDetector tfod;
     private List<Recognition> recognitionsList = new ArrayList<>();
-
 
     // Called once, right after hitting the Init button.
     protected void ratCrewInit() {
@@ -138,16 +125,17 @@ public abstract class AutoBase extends LinearOpMode {
             leftDrive.setPower(0);
             rightDrive.setPower(0);
 
-            gate = hardwareMap.get(Servo.class, "gate");
-            gate.setPosition(1.0);
+            arm = hardwareMap.get(DcMotor.class, "arm");
+            arm.setPower(0);
 
+            // dont move!
+            gate = hardwareMap.get(Servo.class, "gate");
             finger = hardwareMap.get(Servo.class, "finger");
-            finger.setPosition(0.0);
         }
 
         initGyroscope();
 
-        if (doVuforia){
+        if (doVuforia) {
             initVuforia();
             initTfod();
 
@@ -156,13 +144,11 @@ public abstract class AutoBase extends LinearOpMode {
 
                 // The TensorFlow software will scale the input images from the camera to a lower resolution.
                 // This can result in lower detection accuracy at longer distances (> 55cm or 22").
-                // If your target is at distance greater than 50 cm (20") you can adjust the magnification value
+                // If your target is at distance greater than 50 cm (20") you can increase the magnification value
                 // to artificially zoom in to the center of image.  For best results, the "aspectRatio" argument
                 // should be set to the value of the images used to create the TensorFlow Object Detection model
-                // (typically 1.78 or 16/9).
-
-                // Uncomment the following line if you want to adjust the magnification and/or the aspect ratio of the input images.
-                tfod.setZoom(2.5, 1.78);
+                // (typically 16/9).
+                tfod.setZoom(1.0, 16.0/9.0);
             }
         }
 
@@ -176,19 +162,21 @@ public abstract class AutoBase extends LinearOpMode {
 
     protected boolean initGyroscope() {
         if (doGyro) {
-            bosch = hardwareMap.get(BNO055IMU.class, "imu0");
-
-            BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
-            parameters.mode = BNO055IMU.SensorMode.IMU;
-            parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
-            parameters.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
-            parameters.loggingEnabled = false;
-            parameters.loggingTag = "bosch";
-            boolean boschInit = bosch.initialize(parameters);
-            return boschInit;
+            imu = hardwareMap.get(IMU.class, "imu0");
+            RevHubOrientationOnRobot.LogoFacingDirection logoDirection = RevHubOrientationOnRobot.LogoFacingDirection.UP;
+            RevHubOrientationOnRobot.UsbFacingDirection usbDirection = RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
+            RevHubOrientationOnRobot orientationOnRobot = new RevHubOrientationOnRobot(logoDirection, usbDirection);
+            imu.initialize(new IMU.Parameters(orientationOnRobot));
+            return true;
         } else {
             return true;
         }
+    }
+
+    protected void nudgeArmUp() {
+        arm.setPower(-0.7);
+        ratCrewWaitMillis(500);
+        arm.setPower(0);
     }
 
     @Override
@@ -197,6 +185,7 @@ public abstract class AutoBase extends LinearOpMode {
         waitForStart();
 
         printStatus();
+
         ratCrewStart();
         printStatus();
     }
@@ -219,8 +208,8 @@ public abstract class AutoBase extends LinearOpMode {
         assert (deltaAngle > 0.0);
         assert (deltaAngle <= 360.0);
 
-        float currentAngle = getGyroscopeAngle();
-        float destinationAngle = currentAngle + deltaAngle;
+        float currentAngle = (float) getGyroscopeAngle();
+        float destinationAngle = currentAngle - deltaAngle;
         turnRightAbsolute(destinationAngle);
     }
 
@@ -231,14 +220,14 @@ public abstract class AutoBase extends LinearOpMode {
         assert (deltaAngle > 0.0);
         assert (deltaAngle <= 360.0);
 
-        float currentAngle = getGyroscopeAngle();
-        float destinationAngle = currentAngle - deltaAngle;
+        float currentAngle = (float) getGyroscopeAngle();
+        float destinationAngle = currentAngle + deltaAngle;
         turnLeftAbsolute(destinationAngle);
     }
 
     protected void  turnRightAbsolute(float destinationAngle) {
         destinationAngle = normalizeAngle(destinationAngle); // between 0.0-359.999
-        float currentAngle = getGyroscopeAngle(); // between 0.0-359.999
+        float currentAngle = (float) getGyroscopeAngle(); // between 0.0-359.999
 
         // destinationDiffAngle is going to tbe the number of degrees we still need to turn. Note tht if we have to transition over
         // the 360->0 boundary, then this number will be negative.
@@ -263,7 +252,7 @@ public abstract class AutoBase extends LinearOpMode {
                 power *= 0.25;
             nudgeRight(power);
 
-            currentAngle = getGyroscopeAngle();
+            currentAngle = (float) getGyroscopeAngle();
             destinationDiffAngle = (destinationAngle - currentAngle);
             diffRight = calculateRightDiff(destinationDiffAngle);
             diffLeft = calculateLeftDiff(destinationDiffAngle);
@@ -284,7 +273,7 @@ public abstract class AutoBase extends LinearOpMode {
 
     protected void  turnLeftAbsolute(float destinationAngle) {
         destinationAngle = normalizeAngle(destinationAngle); // between 0.0-359.999
-        float currentAngle = getGyroscopeAngle(); // between 0.0-359.999
+        float currentAngle = (float) getGyroscopeAngle(); // between 0.0-359.999
 
         // destinationDiffAngle is going to tbe the number of degrees we still need to turn. Note tht if we have to transition over
         // the 360->0 boundary, then this number will be negative.
@@ -309,7 +298,7 @@ public abstract class AutoBase extends LinearOpMode {
                 power *= 0.25;
             nudgeLeft(power);
 
-            currentAngle = getGyroscopeAngle();
+            currentAngle = (float) getGyroscopeAngle();
             destinationDiffAngle = (destinationAngle - currentAngle);
             diffRight = calculateRightDiff(destinationDiffAngle);
             diffLeft = calculateLeftDiff(destinationDiffAngle);
@@ -339,15 +328,12 @@ public abstract class AutoBase extends LinearOpMode {
     }
 
     // Always returns a number from 0-359.9999
-    protected float getGyroscopeAngle() {
+    protected double getGyroscopeAngle() {
         if (doGyro) {
-            Orientation exangles = bosch.getAngularOrientation(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES);
-            float gyroAngle = exangles.thirdAngle;
-            //exangles.
-            //telemetry.addData("angle", "angle: " + exangles.thirdAngle);
-            float calculated = normalizeAngle(reverseAngle(gyroAngle));
+            YawPitchRollAngles orientation = imu.getRobotYawPitchRollAngles();
+            double calculated = orientation.getYaw(AngleUnit.DEGREES);
             //telemetry.addData("angle2","calculated:" + calculated);
-            return calculated;
+            return normalizeAngle(calculated);
         } else {
             return 0.0f;
         }
@@ -355,6 +341,10 @@ public abstract class AutoBase extends LinearOpMode {
 
     public static float normalizeAngle(float inputAngle) {
         return (inputAngle + 360.0f) % 360.0f;
+    }
+
+    public static double normalizeAngle(double inputAngle) {
+        return (inputAngle + 360.0) % 360.0;
     }
 
     public static float reverseAngle(float inputAngle) {
@@ -403,14 +393,6 @@ public abstract class AutoBase extends LinearOpMode {
         }
 
         if (doVuforia) {
-            if (tfod != null) {
-                // getUpdatedRecognitions() will return null if no new information is available since
-                // the last time that call was made.
-                List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
-                if (updatedRecognitions != null) {
-                  recognitionsList = new ArrayList<>(updatedRecognitions);
-                }
-            }
             telemetry.addData("Tensor", "config=%s, recogs=%d", getRingConfiguration(), recognitionsList.size());
         } else {
             telemetry.addData("Tensor", "DISABLED");
@@ -434,7 +416,6 @@ public abstract class AutoBase extends LinearOpMode {
 
     protected void encoderDrive(double leftInches, double rightInches, double speed, double desiredAngle) {
 
-
         // Jump out if the motors are turned off.
         if (!doMotors)
             return;
@@ -447,7 +428,7 @@ public abstract class AutoBase extends LinearOpMode {
             motorPid.enable();
         }
 
-        float startAngle = getGyroscopeAngle();
+        float startAngle = (float) getGyroscopeAngle();
         double countsPerInch = COUNTS_PER_MOTOR / (WHEEL_DIAMETER * Math.PI);
         int softStartDuration = 2000; // in milliseconds
         int brakeOffsetOne = (int) (18.0f * countsPerInch);
@@ -509,7 +490,7 @@ public abstract class AutoBase extends LinearOpMode {
 
             // Calculate PID correction = straighten out the line!
             if (desiredAngle >= 0.0f) {
-                float currentAngle = getGyroscopeAngle();
+                float currentAngle = (float) getGyroscopeAngle();
                 driveAngleOffset = getAngleDifference(currentAngle, (float)desiredAngle);
                 driveAngleCorrection = (float) motorPid.performPID(driveAngleOffset);
                 if ((leftInches < 0) && (rightInches < 0)) {
@@ -518,8 +499,8 @@ public abstract class AutoBase extends LinearOpMode {
             }
 
             // Record and apply the desired power level.
-            driveLeftSpeed = currSpeed - driveAngleCorrection;
-            driveRightSpeed = currSpeed + driveAngleCorrection;
+            driveLeftSpeed = currSpeed + driveAngleCorrection;
+            driveRightSpeed = currSpeed - driveAngleCorrection;
             leftDrive.setPower(Math.abs(driveLeftSpeed));
             rightDrive.setPower(Math.abs(driveRightSpeed));
 
@@ -561,9 +542,10 @@ public abstract class AutoBase extends LinearOpMode {
         int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
                 "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
-        tfodParameters.minResultConfidence = 0.8f;
+        tfodParameters.minResultConfidence = 0.5f; // 0.75f;
+        tfodParameters.isModelTensorFlow2 = true;
         tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
-        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_FIRST_ELEMENT, LABEL_SECOND_ELEMENT);
+        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABELS);
     }
 
 
