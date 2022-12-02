@@ -4,7 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 /**
  */
-@Autonomous(name="AutoDrop", group="AutoTest")
+//@Autonomous(name="AutoDrop", group="AutoTest")
 public class AutoDropWobbler extends AutoBase {
 
     @Override

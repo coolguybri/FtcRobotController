@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  */
-@Autonomous(name="Ring Seeker", group="AutoTest")
+//@Autonomous(name="Ring Seeker", group="AutoTest")
 public class AutoRingSeeker extends AutoBase {
 
     @Override

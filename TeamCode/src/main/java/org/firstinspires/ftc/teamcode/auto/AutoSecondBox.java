@@ -4,7 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 /**
  */
-@Autonomous(name="Second Box", group="AutoTest")
+//@Autonomous(name="Box Second", group="AutoTest")
 public class AutoSecondBox extends AutoBase {
 
     @Override
