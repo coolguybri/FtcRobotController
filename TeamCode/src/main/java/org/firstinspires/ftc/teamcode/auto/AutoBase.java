@@ -29,6 +29,14 @@ public abstract class AutoBase extends LinearOpMode {
         QUAD,
     }
 
+    public enum SignalConfig
+    {
+        UNDETERMINED,
+        ONE,
+        TWO,
+        THREE,
+    }
+
     // MAGIC NUMBERS for the motor encoders
     // https://asset.pitsco.com/sharedimages/resources/torquenado_dcmotorspecifications.pdf
     static final float COUNTS_PER_MOTOR_TORKNADO = 1440;  // 24 cycles per revolution, times 60:1 geared down.
@@ -55,9 +63,9 @@ public abstract class AutoBase extends LinearOpMode {
     private boolean doMotors = true;
     private DcMotor leftDrive;
     private DcMotor rightDrive;
-    private DcMotor arm;
-    private Servo gate;
-    private Servo finger;
+    protected DcMotor arm;
+    protected Servo gate;
+    protected Servo finger;
     private String motorTurnType = "none";
     private float motorTurnDestination = 0.0f;
     private float motorTurnAngleToGo = 0.0f;
@@ -569,6 +577,27 @@ public abstract class AutoBase extends LinearOpMode {
         return currentRings;
     }
 
+    protected SignalConfig getSignalConfiguration()
+    {
+        SignalConfig config = SignalConfig.UNDETERMINED;
+        if (recognitionsList.size() <= 0) {
+            config = SignalConfig.UNDETERMINED;
+        }
+        else {
+            Recognition r = recognitionsList.get(0);
+            if (r.getLabel().equalsIgnoreCase("3 Panel")) {
+                config = SignalConfig.THREE;
+            } else if (r.getLabel().equalsIgnoreCase("2 Bulb")) {
+                config = SignalConfig.TWO;
+            } else if (r.getLabel().equalsIgnoreCase("1 Bolt")) {
+                config = SignalConfig.ONE;
+            } else {
+                config = SignalConfig.UNDETERMINED;
+            }
+            }
+        return config;
+    }
+
     protected void ratCrewWaitMillis(long millis){
         long startTime = System.currentTimeMillis();
         long currentTime = startTime;
@@ -611,12 +640,57 @@ public abstract class AutoBase extends LinearOpMode {
         return rc;
     }
 
+    protected SignalConfig SignalIdentifier() {
+        ratCrewWaitMillis(WAIT_TIME);
+
+        List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
+        if (updatedRecognitions != null) {
+            // make a copy of the list
+            recognitionsList = new ArrayList<>(updatedRecognitions);
+        }
+        telemetry.addData("# Object Detected", recognitionsList.size());
+
+        // step through the list of recognitions and display boundary info.
+        /*int i = 0;
+
+        for (Recognition recognition : recognitionsList) {
+            telemetry.addData(String.format("label (%d)", i), recognition.getLabel());
+            telemetry.addData(String.format("  left,top (%d)", i), "%.03f , %.03f",
+                    recognition.getLeft(), recognition.getTop());
+            telemetry.addData(String.format("  right,bottom (%d)", i), "%.03f , %.03f",
+                    recognition.getRight(), recognition.getBottom());
+        }
+        */
+
+        SignalConfig rc = getSignalConfiguration();
+        return rc;
+    }
+
     protected void openGate() {
-        gate.setPosition(1.0);
+        gate.setPosition(0.0);
     }
 
     protected void closeGate() {
-        gate.setPosition(0.0);
+        gate.setPosition(1.0);
+    }
+
+    protected void openFinger() {
+        finger.setPosition(1.0);
+    }
+    protected void closeFinger() {
+        finger.setPosition(0.0);
+    }
+
+    protected void moveArmUp(int mill) {
+        arm.setPower(-0.7);
+        ratCrewWaitMillis(mill);
+        arm.setPower(0);
+    }
+
+    protected void moveArmDown(int mill) {
+        arm.setPower(0.7);
+        ratCrewWaitMillis(mill);
+        arm.setPower(0);
     }
 
     float getAngleDifference(float from, float to)
