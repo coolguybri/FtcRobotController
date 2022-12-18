@@ -4,7 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 /**
  */
-@Autonomous(name="Final Mode", group="A")
+//@Autonomous(name="Final Mode", group="A")
 public class AutoFinalMode extends AutoBase {
 
     @Override
