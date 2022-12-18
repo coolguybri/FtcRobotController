@@ -61,8 +61,10 @@ public abstract class AutoBase extends LinearOpMode {
 
     // Instance Members: Motors
     private boolean doMotors = true;
-    private DcMotor leftDrive;
-    private DcMotor rightDrive;
+    private DcMotor backLeftDrive;
+    private DcMotor backRightDrive;
+    private DcMotor frontLeftDrive;
+    private DcMotor frontRightDrive;
     protected DcMotor arm;
     protected Servo gate;
     protected Servo finger;
@@ -116,22 +118,34 @@ public abstract class AutoBase extends LinearOpMode {
         // TODO: push into initMotor function
         if (doMotors) {
             // Initialize Motors, finding them through the hardware map.
-            leftDrive = hardwareMap.get(DcMotor.class, "motorLeft");
-            rightDrive = hardwareMap.get(DcMotor.class, "motorRight");
-            leftDrive.setDirection(DcMotor.Direction.REVERSE);
-            rightDrive.setDirection(DcMotor.Direction.FORWARD);
+            backLeftDrive = hardwareMap.get(DcMotor.class, "motorLeftRear");
+            backRightDrive = hardwareMap.get(DcMotor.class, "motorRightRear");
+            frontLeftDrive = hardwareMap.get(DcMotor.class, "motorLeftFront");
+            frontRightDrive = hardwareMap.get(DcMotor.class, "motorRightFront");
+            backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
+            backRightDrive.setDirection(DcMotor.Direction.FORWARD);
+            frontLeftDrive.setDirection(DcMotor.Direction.REVERSE);
+            frontRightDrive.setDirection(DcMotor.Direction.FORWARD);
 
             // initialize the encoder
-            leftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            rightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            leftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            rightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            leftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            rightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            backLeftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            backRightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            frontLeftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            frontRightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            backLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            backRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            frontLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            frontRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            backLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            backRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
             // Set all motors to zero power.
-            leftDrive.setPower(0);
-            rightDrive.setPower(0);
+            backLeftDrive.setPower(0);
+            backRightDrive.setPower(0);
+            frontLeftDrive.setPower(0);
+            frontRightDrive.setPower(0);
 
             arm = hardwareMap.get(DcMotor.class, "arm");
             arm.setPower(0);
@@ -269,8 +283,10 @@ public abstract class AutoBase extends LinearOpMode {
         }
 
         // Turn off the motor.
-        leftDrive.setPower(0);
-        rightDrive.setPower(0);
+        backLeftDrive.setPower(0);
+        backRightDrive.setPower(0);
+        frontLeftDrive.setPower(0);
+        frontRightDrive.setPower(0);
 
         // Turn off debug info.
         motorTurnType = "none";
@@ -315,8 +331,10 @@ public abstract class AutoBase extends LinearOpMode {
         }
 
         // Turn off the motor.
-        leftDrive.setPower(0);
-        rightDrive.setPower(0);
+        backLeftDrive.setPower(0);
+        backRightDrive.setPower(0);
+        frontLeftDrive.setPower(0);
+        frontRightDrive.setPower(0);
 
         // Turn off debug info.
         motorTurnType = "none";
@@ -326,13 +344,17 @@ public abstract class AutoBase extends LinearOpMode {
     }
 
     protected void nudgeLeft(double power) {
-        leftDrive.setPower(-power);
-        rightDrive.setPower(power);
+        backLeftDrive.setPower(-power);
+        backRightDrive.setPower(power);
+        frontLeftDrive.setPower(-power);
+        frontRightDrive.setPower(power);
      }
 
     protected void nudgeRight(double power) {
-        leftDrive.setPower(power);
-        rightDrive.setPower(-power);
+        backLeftDrive.setPower(power);
+        backRightDrive.setPower(-power);
+        frontLeftDrive.setPower(power);
+        frontRightDrive.setPower(-power);
     }
 
     // Always returns a number from 0-359.9999
@@ -387,11 +409,11 @@ public abstract class AutoBase extends LinearOpMode {
         telemetry.addData("Run", "madetheRun=%b, runTime: %.1f, stopped=%b", madeTheRun, getRuntime(), isStopRequested());
 
         if (doMotors) {
-            int leftPos = leftDrive.getCurrentPosition();
-            int rightPos = rightDrive.getCurrentPosition();
+            int leftPos = backLeftDrive.getCurrentPosition();
+            int rightPos = backRightDrive.getCurrentPosition();
 
             telemetry.addData("Motor", "left: %02.1f (%d), right: %02.1f (%d), driving=%b, off=%02.1f, corr=%02.1f",
-                    leftDrive.getPower(), leftPos, rightDrive.getPower(), rightPos, isDriving, driveAngleOffset, driveAngleCorrection);
+                    backLeftDrive.getPower(), leftPos, backRightDrive.getPower(), rightPos, isDriving, driveAngleOffset, driveAngleCorrection);
             telemetry.addData("MotorTurn", "type=%s, now: %02.1f, dest: %02.1f, togo=%02.1f, togo2=%02.1f",
                     motorTurnType, this.getGyroscopeAngle(), motorTurnDestination, motorTurnAngleToGo, motorTurnAngleAdjustedToGo);
             telemetry.addData("MotorLeft", "start=%d, curr=%d, end=%d, pwr=%02.1f", driveLeftStart, leftPos, driveLeftTarget, driveLeftSpeed);
@@ -444,19 +466,19 @@ public abstract class AutoBase extends LinearOpMode {
 
         // Get the starting position of the encoders.
         isDriving = true;
-        driveLeftStart = leftDrive.getCurrentPosition();
-        driveRightStart = rightDrive.getCurrentPosition();
+        driveLeftStart = backLeftDrive.getCurrentPosition();
+        driveRightStart = backRightDrive.getCurrentPosition();
 
         int leftNew = (int) (leftInches * countsPerInch * RAT_FUDGE);
         int rightNew = (int) (rightInches * countsPerInch * RAT_FUDGE);
         driveLeftTarget = driveLeftStart + leftNew;
         driveRightTarget = driveRightStart + rightNew;
-        leftDrive.setTargetPosition(driveLeftTarget);
-        rightDrive.setTargetPosition(driveRightTarget);
+        backLeftDrive.setTargetPosition(driveLeftTarget);
+        backRightDrive.setTargetPosition(driveRightTarget);
 
         // Turn On RUN_TO_POSITION
-        leftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        rightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        backLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        backRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
         // Compute the braking zones.
         int leftBrakeOne = driveLeftStart + brakeOffsetOne; // how many remaining will trigger it
@@ -476,8 +498,8 @@ public abstract class AutoBase extends LinearOpMode {
         while (opModeIsActive() && keepGoing && (motorOnTime.seconds() < 30)) {
             printStatus();
 
-            int leftPos = leftDrive.getCurrentPosition();
-            int rightPos = rightDrive.getCurrentPosition();
+            int leftPos = backLeftDrive.getCurrentPosition();
+            int rightPos = backRightDrive.getCurrentPosition();
 
             // soft start
             double currSpeed = speed;
@@ -509,18 +531,24 @@ public abstract class AutoBase extends LinearOpMode {
             // Record and apply the desired power level.
             driveLeftSpeed = currSpeed + driveAngleCorrection;
             driveRightSpeed = currSpeed - driveAngleCorrection;
-            leftDrive.setPower(Math.abs(driveLeftSpeed));
-            rightDrive.setPower(Math.abs(driveRightSpeed));
+            backLeftDrive.setPower(Math.abs(driveLeftSpeed));
+            backRightDrive.setPower(Math.abs(driveRightSpeed));
+            frontLeftDrive.setPower(Math.abs(driveLeftSpeed));
+            frontRightDrive.setPower(Math.abs(driveRightSpeed));
 
-            keepGoing = rightDrive.isBusy() && leftDrive.isBusy();
+            keepGoing = backRightDrive.isBusy() && backLeftDrive.isBusy();
         }
 
         // Turn off RUN_TO_POSITION
         printStatus();
-        leftDrive.setPower(0);
-        rightDrive.setPower(0);
-        leftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        rightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        backLeftDrive.setPower(0);
+        backRightDrive.setPower(0);
+        frontLeftDrive.setPower(0);
+        frontRightDrive.setPower(0);
+        backLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        backRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        frontLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        frontRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         driveLeftStart = 0;
         driveRightStart = 0;
         driveLeftTarget = 0;
