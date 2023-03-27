@@ -45,9 +45,9 @@ public class AutoFinalFruity extends AutoBase {
 
             encoderDrive(6);
             turnLeft(90);
-            encoderDrive(20);
+            encoderDrive(23);
             turnRight(90);
-            encoderDrive(33);
+            encoderDrive(37);
 
 
         } else if (rc == SignalConfig.TWO){
@@ -56,7 +56,7 @@ public class AutoFinalFruity extends AutoBase {
             ratCrewWaitMillis(1000);
             arm.setPower(0);
 
-            encoderDrive(39);
+            encoderDrive(43);
 
 
         } else if (rc == SignalConfig.THREE){
@@ -65,13 +65,13 @@ public class AutoFinalFruity extends AutoBase {
 
             encoderDrive(6);
             turnRight(90);
-            encoderDrive(21);
+            encoderDrive(23);
             turnLeft(90);
-            encoderDrive(33);
+            encoderDrive(37);
 
 
         } else {
-            encoderDrive(39);
+            encoderDrive(43);
         }
 
         //tighten up the robot!
