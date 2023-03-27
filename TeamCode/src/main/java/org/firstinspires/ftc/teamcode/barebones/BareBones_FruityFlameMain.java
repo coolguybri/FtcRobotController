@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.barebones;
 
+import static java.lang.Thread.sleep;
+
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -8,7 +10,7 @@ import com.qualcomm.robotcore.util.Range;
 
 /**
  */
-@TeleOp(name="Fruity Flame... Go!", group="AAA")
+@TeleOp(name="Fruity Flame BattleBot!", group="AAA")
 public class BareBones_FruityFlameMain extends OpMode {
 
     // Instance Members.
@@ -33,6 +35,14 @@ public class BareBones_FruityFlameMain extends OpMode {
     private boolean fingerClosed = false;
     private boolean fingerLastTrigger = false;
 
+    private boolean vigourousAttack = false;
+    private int vigourousState = 0;
+
+    private boolean doTail = true;
+    private Servo tail; // The servo motor device
+    private boolean tailAttackPressed = false; // If the button pressed?
+    private int tailAttackCounter = 0;
+    private boolean tailDirection = true;
 
 
     // Called once, right after hitting the Init button.
@@ -56,7 +66,6 @@ public class BareBones_FruityFlameMain extends OpMode {
             frontLeftDrive.setPower(0);
             frontRightDrive.setPower(0);
 
-
             // Set all motors to run without encoders.
             // May want to use RUN_USING_ENCODERS if encoders are installed.
             backLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -67,6 +76,7 @@ public class BareBones_FruityFlameMain extends OpMode {
             motorScaler = 1.0;
         }
 
+        // TODO: this gate is not used! Delete it!
         if (doGate) {
             // Initialize Motors, finding them through the hardware map.
             gate = hardwareMap.get(Servo.class, "gate");
@@ -79,13 +89,19 @@ public class BareBones_FruityFlameMain extends OpMode {
 
         if (doArm) {
             arm = hardwareMap.get(DcMotor.class, "arm");
-            armScaler = 0.8;
+            armScaler = 1.0;
 
             // init the servo position
             finger = hardwareMap.get(Servo.class, "finger");
             fingerClosed = false;
             fingerLastTrigger = false;
             finger.setPosition(0.0);
+        }
+
+        if (doTail) {
+            // Initialize Motors, finding them through the hardware map.
+            tail = hardwareMap.get(Servo.class, "tail");
+            tail.setPosition(0.0);
         }
 
         telemetry.addData("Yo", "Initialized Drive, motors=%b", doMotors);
@@ -107,6 +123,71 @@ public class BareBones_FruityFlameMain extends OpMode {
             armScaler = 0.8;
         }
 
+        // Special Vigorous Atack Mode
+        if (gamepad1.left_bumper) {
+            if (!vigourousAttack) {
+                vigourousAttack = true;
+                vigourousState = 0;
+            }
+
+            // increment state.
+            vigourousState++;
+
+            // Compute direction change time.
+            double shakePower = 1.0;
+            boolean direction = true;
+            int directionDuration = 15;
+            int directionShift = (vigourousState % (directionDuration * 2));
+            if (directionShift > directionDuration) {
+                direction = !direction;
+            }
+
+            if (direction) {
+              nudgeLeft(shakePower);
+            } else {
+              nudgeRight(shakePower);
+            }
+            try {
+                sleep(20);
+            } catch (Exception e) {
+            }
+        } else {
+            vigourousAttack = false;
+            vigourousState = 0;
+        }
+
+
+        // Detect special Tail Attack Mode
+        if (gamepad1.right_bumper) {
+            // Detect if they just pressed the button down for the first time (as opposed to holding it down for a while.
+            // Reset the counter, and the iniitla direction.
+            if (!tailAttackPressed) {
+                tailAttackPressed = true;
+                tailAttackCounter = 0;
+                tailDirection = true;
+            }
+
+            // increment the counter - the number of program loops we have had the button down.
+            tailAttackCounter++;
+
+            // Every X loops, switch directions. Detect this by swtiching evertime the counter hits a number divisible by 15.
+            int directionShiftTrigger = (tailAttackCounter % 250);
+            if (directionShiftTrigger == 0) {
+                tailDirection = !tailDirection;
+            }
+
+            // Set the servo to the farthest position for whatever direction it is supposed to be in right now.
+            if (tailDirection) {
+                tail.setPosition((0.0));
+            } else {
+                tail.setPosition((1.0));
+            }
+
+        } else {
+            tailAttackPressed = false;
+            tailAttackCounter = 0;
+        }
+
         if (doMotors) {
             double leftBackPower = 0.0;
             double rightBackPower = 0.0;
@@ -114,10 +195,13 @@ public class BareBones_FruityFlameMain extends OpMode {
             double rightFrontPower = 0.0;
 
             // Look for digital controls
-                //keep drive the same, turn--switch to right joystick
+                //keep drive the same, turn--switch to right joystic
                 double drive = -gamepad1.left_stick_y;
+                if (Math.abs(drive) < 0.1) {
+                    drive = -gamepad1.right_stick_y;
+                }
                 double turn = gamepad1.right_stick_x;
-                double strafe = gamepad1.left_stick_x;
+                double strafe = -gamepad1.left_stick_x;
                 if(Math.abs(turn) > 0.1) {
                     leftBackPower = Range.clip(drive + turn, -1.0, 1.0);
                     leftFrontPower = Range.clip(drive + turn, -1.0, 1.0);
@@ -146,7 +230,7 @@ public class BareBones_FruityFlameMain extends OpMode {
             double gateDetail = gamepad1.left_trigger;
             if (gateDetail != 0.0) {
                 clawSet(gateDetail);
-            } else {
+            } /* else {
                 boolean thisTrigger = gamepad1.left_bumper;
                 if (thisTrigger && !gateLastTrigger) {
                     this.gateClosed = !this.gateClosed;
@@ -158,16 +242,16 @@ public class BareBones_FruityFlameMain extends OpMode {
                 } else {
                     clawRelease();
                 }
-            }
+            } */
         }
 
         if (doArm) {
             // controls the actual arm
             double armPower = 0.0;
             if (gamepad1.dpad_up) {
-                armPower = 1.0;
-            } else if (gamepad1.dpad_down) {
                 armPower = -1.0;
+            } else if (gamepad1.dpad_down) {
+                armPower = 1.0;
             }
 
             arm.setPower(armPower * armScaler);
@@ -177,8 +261,9 @@ public class BareBones_FruityFlameMain extends OpMode {
             double fingerDetail = gamepad1.right_trigger;
             if (Math.abs(fingerDetail) > 0.1) {
                 finger.setPosition(1.0f - fingerDetail);
-            } else {
-                boolean thisTrigger = gamepad1.right_bumper;
+            } /* else {
+               // boolean thisTrigger = gamepad1.right_bumper;
+                boolean thisTrigger = false;
                 if (thisTrigger && !fingerLastTrigger) {
                     this.fingerClosed = !this.fingerClosed;
                 }
@@ -191,7 +276,7 @@ public class BareBones_FruityFlameMain extends OpMode {
                 }
 
 
-            }
+            } */
 
             telemetry.addData("finger", "%.1f", finger.getPosition());
         }
@@ -216,5 +301,19 @@ public class BareBones_FruityFlameMain extends OpMode {
             angleHand = newValue;
             gate.setPosition(newValue);
         }
+    }
+
+    protected void nudgeLeft(double power) {
+        backLeftDrive.setPower(-power);
+        backRightDrive.setPower(power);
+        frontLeftDrive.setPower(-power);
+        frontRightDrive.setPower(power);
+    }
+
+    protected void nudgeRight(double power) {
+        backLeftDrive.setPower(power);
+        backRightDrive.setPower(-power);
+        frontLeftDrive.setPower(power);
+        frontRightDrive.setPower(-power);
     }
 }
