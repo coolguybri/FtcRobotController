@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 /**
@@ -43,6 +44,12 @@ public class BareBones_FruityFlameMain extends OpMode {
     private boolean tailAttackPressed = false; // If the button pressed?
     private int tailAttackCounter = 0;
     private boolean tailDirection = true;
+
+    private boolean doOnePuncher = true;
+    private DcMotor puncher;
+
+    private boolean doDriller = true;
+    private DcMotor driller;
 
 
     // Called once, right after hitting the Init button.
@@ -104,8 +111,40 @@ public class BareBones_FruityFlameMain extends OpMode {
             tail.setPosition(0.0);
         }
 
+        /* One Puncher Weapon! */
+        boolean errOnePuncher = false;
+        if (doOnePuncher) {
+            try {
+                puncher = hardwareMap.get(DcMotor.class, "puncher");
+                puncher.setDirection(DcMotor.Direction.REVERSE);
+                puncher.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                puncher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                puncher.setPower(0);
+            } catch (Exception e) {
+                doOnePuncher = false;
+                errOnePuncher = true;
+            }
+        }
+
+        /* One Puncher Weapon! */
+        boolean errDriller = false;
+        if (doDriller) {
+            try {
+                driller = hardwareMap.get(DcMotor.class, "driller");
+                driller.setDirection(DcMotor.Direction.REVERSE);
+                driller.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                driller.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                driller.setPower(0);
+            } catch (Exception e) {
+                doDriller = false;
+                errDriller = true;
+            }
+        }
+
         telemetry.addData("Yo", "Initialized Drive, motors=%b", doMotors);
         telemetry.addData("Yo", "Initialized Gate, servo=%b", doGate);
+        telemetry.addData("Yo", "Initialized OnePunchMan, do=%s, err=%s", doOnePuncher, errOnePuncher);
+        telemetry.addData("Yo", "Initialized Driller, do=%s, err=%s", doDriller, errDriller);
     }
 
     // Called repeatedly, right after hitting start, up until hitting stop.
@@ -158,7 +197,7 @@ public class BareBones_FruityFlameMain extends OpMode {
 
 
         // Detect special Tail Attack Mode
-        if (gamepad1.right_bumper) {
+        /*if (gamepad1.right_bumper) {
             // Detect if they just pressed the button down for the first time (as opposed to holding it down for a while.
             // Reset the counter, and the iniitla direction.
             if (!tailAttackPressed) {
@@ -186,7 +225,7 @@ public class BareBones_FruityFlameMain extends OpMode {
         } else {
             tailAttackPressed = false;
             tailAttackCounter = 0;
-        }
+        } */
 
         if (doMotors) {
             double leftBackPower = 0.0;
@@ -225,7 +264,7 @@ public class BareBones_FruityFlameMain extends OpMode {
             telemetry.addData("right", "%.1f (%.1f x %.1f)", rightFrontPower * motorScaler, rightFrontPower, motorScaler);
         }
 
-        if (doGate) {
+       /* if (doGate) {
             // find the trigger for state change.
             double gateDetail = gamepad1.left_trigger;
             if (gateDetail != 0.0) {
@@ -242,7 +281,13 @@ public class BareBones_FruityFlameMain extends OpMode {
                 } else {
                     clawRelease();
                 }
-            } */
+            }
+        } */
+
+        if (doDriller) {
+            double drive = gamepad1.left_trigger;
+            driller.setPower(drive);
+            telemetry.addData("driller", "%.1f", drive);
         }
 
         if (doArm) {
@@ -261,24 +306,53 @@ public class BareBones_FruityFlameMain extends OpMode {
             double fingerDetail = gamepad1.right_trigger;
             if (Math.abs(fingerDetail) > 0.1) {
                 finger.setPosition(1.0f - fingerDetail);
-            } /* else {
-               // boolean thisTrigger = gamepad1.right_bumper;
-                boolean thisTrigger = false;
-                if (thisTrigger && !fingerLastTrigger) {
-                    this.fingerClosed = !this.fingerClosed;
-                }
-                fingerLastTrigger = thisTrigger;
-
-                if (this.fingerClosed) {
-                    finger.setPosition(1.0);
-                } else {
-                    finger.setPosition(0.0);
-                }
-
-
-            } */
+            }
 
             telemetry.addData("finger", "%.1f", finger.getPosition());
+        }
+
+        if (doOnePuncher) {
+
+            // Status update.
+            int currPos = puncher.getCurrentPosition();
+            telemetry.addData("puncher", "curr=%d", currPos);
+
+            if (gamepad1.right_bumper) {
+                double punchPower = 1.0;
+                int distance = 900;
+                telemetry.addData("puncher2", "curr=%d", currPos);
+
+                ElapsedTime motorOnTime;
+                int startPos = puncher.getCurrentPosition();
+                int endPos = (int) startPos + distance;
+
+                // Punch out
+                puncher.setTargetPosition(endPos);
+                puncher.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                motorOnTime = new ElapsedTime();
+                puncher.setPower(punchPower);
+                while (puncher.isBusy() && motorOnTime.seconds() < 5) {
+                    currPos = puncher.getCurrentPosition();
+                    telemetry.addData("puncher-move", "start=%d, end=%d, curr=%d, dist=%d, busy=%b)",
+                            startPos, endPos, currPos, distance, puncher.isBusy());
+                    telemetry.update();
+                }
+                puncher.setPower(0);
+
+                // Retract post-punch
+                puncher.setTargetPosition(startPos);
+                puncher.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                motorOnTime = new ElapsedTime();
+                puncher.setPower(-punchPower);
+                while (puncher.isBusy() && motorOnTime.seconds() < 5) {
+                    currPos = puncher.getCurrentPosition();
+                    telemetry.addData("puncher-move2", "start=%d, end=%d, curr=%d, dist=%d, busy=%b)",
+                            startPos, endPos, currPos, distance, puncher.isBusy());
+                    telemetry.update();
+                }
+                puncher.setPower(0);
+            }
+
         }
 
         telemetry.addData("Status", "Run Clock: %.2f", getRuntime());
