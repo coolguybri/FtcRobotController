@@ -1,24 +1,16 @@
 package org.firstinspires.ftc.teamcode.auto;
 
-import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.util.ElapsedTime;
-
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
-import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
 /**
  */
 @Autonomous(name="Straight 96", group="AutoTest")
-public class AutoStraight96 extends AutoBase {
+public class AutoStraight96 extends AutoDriveTest {
 
     @Override
     public void ratCrewGo() {
         encoderDrive(96);
+        ratCrewWaitSecs(5);
     }
 }
 

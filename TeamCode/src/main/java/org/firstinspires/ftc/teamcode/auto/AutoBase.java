@@ -39,7 +39,8 @@ public abstract class AutoBase extends LinearOpMode {
 
     // MAGIC NUMBERS for the motor encoders
     // https://asset.pitsco.com/sharedimages/resources/torquenado_dcmotorspecifications.pdf
-    static final float COUNTS_PER_MOTOR_TORKNADO = 1440;  // 24 cycles per revolution, times 60:1 geared down.
+    static final float COUNTS_PER_MOTOR_TORKNADO_60 = 1440;  // 24 cycles per revolution, times 60:1 geared down.
+    static final float COUNTS_PER_MOTOR_TORKNADO_20 = 480;  // 24 cycles per revolution, times 20:1 geared down.
 
     // Vuforia Constants
     private static final String TFOD_MODEL_ASSET = "PowerPlay.tflite";
@@ -54,20 +55,17 @@ public abstract class AutoBase extends LinearOpMode {
     private static final float NUDGE_ANGLE = 4.0f;
     private static final float MOTOR_TURN_SPEED = 0.6f;
     private static final float MOTOR_MOVE_SPEED = 0.8f;
-    private static final float COUNTS_PER_MOTOR = COUNTS_PER_MOTOR_TORKNADO;
     private static final float WHEEL_DIAMETER = 4.0f;
     private static final long WAIT_TIME = TimeUnit.SECONDS.toMillis(5L);
     private static final float RAT_FUDGE = 0.98f;
 
     // Instance Members: Motors
-    private boolean doMotors = true;
+    protected boolean doMotors = true;
+    private boolean useGear20Motors = true;
     private DcMotor backLeftDrive;
     private DcMotor backRightDrive;
     private DcMotor frontLeftDrive;
     private DcMotor frontRightDrive;
-    protected DcMotor arm;
-    protected Servo gate;
-    protected Servo finger;
     private String motorTurnType = "none";
     private float motorTurnDestination = 0.0f;
     private float motorTurnAngleToGo = 0.0f;
@@ -75,24 +73,35 @@ public abstract class AutoBase extends LinearOpMode {
     private boolean isDriving = false;
     private float driveAngleOffset = 0.0f;
     private float driveAngleCorrection = 0.0f;
-    private int driveLeftStart = 0;
-    private int driveRightStart = 0;
-    private int driveLeftTarget = 0;
-    private int driveRightTarget = 0;
+    private int driveBackLeftStart = 0;
+    private int driveBackRightStart = 0;
+    private int driveFrontLeftStart = 0;
+    private int driveFrontRightStart = 0;
+    private int driveBackLeftTarget = 0;
+    private int driveBackRightTarget = 0;
+    private int driveFrontLeftTarget = 0;
+    private int driveFrontRightTarget = 0;
     private double driveRightSpeed = 0.0f;
     private double driveLeftSpeed = 0.0f;
     private PIDController motorPid = new PIDController(.05, 0, 0);
 
     // Instance Members: Gyro
-    private boolean doGyro = true;
+    protected boolean doGyro = true;
     private IMU imu;
+
+    protected boolean doArm = false;
+    protected DcMotor arm;
+    protected Servo finger;
+
+    protected boolean doGate = false;
+    protected Servo gate;
 
     // Instance Members: Core
     private long startTime = System.nanoTime();
     private boolean madeTheRun = false;
 
     // Instance Members: Vuforia
-    private boolean doVuforia = true;
+    protected boolean doVuforia = true;
     private VuforiaLocalizer vuforia;
     private TFObjectDetector tfod;
     private List<Recognition> recognitionsList = new ArrayList<>();
@@ -106,10 +115,10 @@ public abstract class AutoBase extends LinearOpMode {
         motorTurnAngleToGo = 0.0f;
         motorTurnAngleAdjustedToGo = 0.0f;
         isDriving = false;
-        driveLeftStart = 0;
-        driveRightStart = 0;
-        driveLeftTarget = 0;
-        driveRightTarget = 0;
+        driveBackLeftStart = 0;
+        driveBackRightStart = 0;
+        driveBackLeftTarget = 0;
+        driveBackRightTarget = 0;
         driveRightSpeed = 0.0f;
         driveLeftSpeed = 0.0f;
         driveAngleOffset = 0.0f;
@@ -122,10 +131,17 @@ public abstract class AutoBase extends LinearOpMode {
             backRightDrive = hardwareMap.get(DcMotor.class, "motorRightRear");
             frontLeftDrive = hardwareMap.get(DcMotor.class, "motorLeftFront");
             frontRightDrive = hardwareMap.get(DcMotor.class, "motorRightFront");
-            backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
-            backRightDrive.setDirection(DcMotor.Direction.FORWARD);
-            frontLeftDrive.setDirection(DcMotor.Direction.REVERSE);
-            frontRightDrive.setDirection(DcMotor.Direction.FORWARD);
+            if (useGear20Motors) {
+                backLeftDrive.setDirection(DcMotor.Direction.FORWARD);
+                backRightDrive.setDirection(DcMotor.Direction.REVERSE);
+                frontLeftDrive.setDirection(DcMotor.Direction.FORWARD);
+                frontRightDrive.setDirection(DcMotor.Direction.REVERSE);
+            } else {
+                backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
+                backRightDrive.setDirection(DcMotor.Direction.FORWARD);
+                frontLeftDrive.setDirection(DcMotor.Direction.REVERSE);
+                frontRightDrive.setDirection(DcMotor.Direction.FORWARD);
+            }
 
             // initialize the encoder
             backLeftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -146,13 +162,18 @@ public abstract class AutoBase extends LinearOpMode {
             backRightDrive.setPower(0);
             frontLeftDrive.setPower(0);
             frontRightDrive.setPower(0);
+        }
 
+        if (doArm) {
             arm = hardwareMap.get(DcMotor.class, "arm");
             arm.setPower(0);
 
+            finger = hardwareMap.get(Servo.class, "finger");
+        }
+
+        if (doGate) {
             // dont move!
             gate = hardwareMap.get(Servo.class, "gate");
-            finger = hardwareMap.get(Servo.class, "finger");
         }
 
         initGyroscope();
@@ -196,9 +217,11 @@ public abstract class AutoBase extends LinearOpMode {
     }
 
     protected void nudgeArmUp() {
-        arm.setPower(-0.7);
-        ratCrewWaitMillis(500);
-        arm.setPower(0);
+        if (doArm) {
+            arm.setPower(-0.7);
+            ratCrewWaitMillis(500);
+            arm.setPower(0);
+        }
     }
 
     @Override
@@ -409,15 +432,27 @@ public abstract class AutoBase extends LinearOpMode {
         telemetry.addData("Run", "madetheRun=%b, runTime: %.1f, stopped=%b", madeTheRun, getRuntime(), isStopRequested());
 
         if (doMotors) {
-            int leftPos = backLeftDrive.getCurrentPosition();
-            int rightPos = backRightDrive.getCurrentPosition();
+            int backLeftPos = backLeftDrive.getCurrentPosition();
+            int backRightPos = backRightDrive.getCurrentPosition();
+            int frontLeftPos = frontLeftDrive.getCurrentPosition();
+            int frontRightPos = frontRightDrive.getCurrentPosition();
+            double backLeftPower = backLeftDrive.getPower();
+            double backRightPower = backRightDrive.getPower();
+            double frontLeftPower = frontLeftDrive.getPower();
+            double frontRightPower = frontRightDrive.getPower();
 
-            telemetry.addData("Motor", "left: %02.1f (%d), right: %02.1f (%d), driving=%b, off=%02.1f, corr=%02.1f",
-                    backLeftDrive.getPower(), leftPos, backRightDrive.getPower(), rightPos, isDriving, driveAngleOffset, driveAngleCorrection);
+            telemetry.addData("MotorDrive", "driving=%b, off=%02.1f, corr=%02.1f",
+                    isDriving, driveAngleOffset, driveAngleCorrection);
             telemetry.addData("MotorTurn", "type=%s, now: %02.1f, dest: %02.1f, togo=%02.1f, togo2=%02.1f",
                     motorTurnType, this.getGyroscopeAngle(), motorTurnDestination, motorTurnAngleToGo, motorTurnAngleAdjustedToGo);
-            telemetry.addData("MotorLeft", "start=%d, curr=%d, end=%d, pwr=%02.1f", driveLeftStart, leftPos, driveLeftTarget, driveLeftSpeed);
-            telemetry.addData("MotorRight", "start=%d, curr=%d, end=%d, pwr=%02.1f", driveRightStart, rightPos, driveRightTarget, driveRightSpeed);
+            telemetry.addData("MotorLeftBack", "start=%d, curr=%d, end=%d, pwr=%02.1f (%02.1f)",
+                    driveBackLeftStart, backLeftPos, driveBackLeftTarget, driveLeftSpeed, backLeftPower);
+            telemetry.addData("MotorRightBack", "start=%d, curr=%d, end=%d, pwr=%02.1f (%02.1f)",
+                    driveBackRightStart, backRightPos, driveBackRightTarget, driveRightSpeed, backRightPower);
+            telemetry.addData("MotorLefFront", "start=%d, curr=%d, end=%d, pwr=%02.1f (%02.1f)",
+                    driveFrontLeftStart, frontLeftPos, driveFrontLeftTarget, driveLeftSpeed, frontLeftPower);
+            telemetry.addData("MotorRightFront", "start=%d, curr=%d, end=%d, pwr=%02.1f (%02.1f)",
+                    driveFrontRightStart, frontRightPos, driveFrontRightTarget, driveRightSpeed, frontRightPower);
         } else {
             telemetry.addData("Motor", "DISABLED");
         }
@@ -459,32 +494,39 @@ public abstract class AutoBase extends LinearOpMode {
         }
 
         float startAngle = (float) getGyroscopeAngle();
-        double countsPerInch = COUNTS_PER_MOTOR / (WHEEL_DIAMETER * Math.PI);
+        double countsPerMotor = COUNTS_PER_MOTOR_TORKNADO_60;
+        if (useGear20Motors)
+            countsPerMotor = COUNTS_PER_MOTOR_TORKNADO_20;
+        double countsPerInch = countsPerMotor / (WHEEL_DIAMETER * Math.PI);
         int softStartDuration = 2000; // in milliseconds
         int brakeOffsetOne = (int) (18.0f * countsPerInch);
         int brakeOffsetTwo = (int) (8.0f * countsPerInch);
 
         // Get the starting position of the encoders.
         isDriving = true;
-        driveLeftStart = backLeftDrive.getCurrentPosition();
-        driveRightStart = backRightDrive.getCurrentPosition();
+        driveBackLeftStart = backLeftDrive.getCurrentPosition();
+        driveBackRightStart = backRightDrive.getCurrentPosition();
+        driveFrontLeftStart = backLeftDrive.getCurrentPosition();
+        driveFrontRightStart = backRightDrive.getCurrentPosition();
 
         int leftNew = (int) (leftInches * countsPerInch * RAT_FUDGE);
         int rightNew = (int) (rightInches * countsPerInch * RAT_FUDGE);
-        driveLeftTarget = driveLeftStart + leftNew;
-        driveRightTarget = driveRightStart + rightNew;
-        backLeftDrive.setTargetPosition(driveLeftTarget);
-        backRightDrive.setTargetPosition(driveRightTarget);
+        driveBackLeftTarget = driveBackLeftStart + leftNew;
+        driveBackRightTarget = driveBackRightStart + rightNew;
+        driveFrontLeftTarget = driveFrontLeftStart + leftNew;
+        driveFrontRightTarget = driveFrontRightStart + rightNew;
+        backLeftDrive.setTargetPosition(driveBackLeftTarget);
+        backRightDrive.setTargetPosition(driveBackRightTarget);
 
         // Turn On RUN_TO_POSITION
         backLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         backRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
         // Compute the braking zones.
-        int leftBrakeOne = driveLeftStart + brakeOffsetOne; // how many remaining will trigger it
-        int rightBrakeOne = driveRightStart + brakeOffsetOne;
-        int leftBrakeTwo = driveLeftStart + brakeOffsetTwo;
-        int rightBrakeTwo = driveRightStart + brakeOffsetTwo;
+        int leftBrakeOne = driveBackLeftStart + brakeOffsetOne; // how many remaining will trigger it
+        int rightBrakeOne = driveBackRightStart + brakeOffsetOne;
+        int leftBrakeTwo = driveBackLeftStart + brakeOffsetTwo;
+        int rightBrakeTwo = driveBackRightStart + brakeOffsetTwo;
 
 
         // keep looping while we are still active, and there is time left, and both motors are running.
@@ -498,8 +540,8 @@ public abstract class AutoBase extends LinearOpMode {
         while (opModeIsActive() && keepGoing && (motorOnTime.seconds() < 30)) {
             printStatus();
 
-            int leftPos = backLeftDrive.getCurrentPosition();
-            int rightPos = backRightDrive.getCurrentPosition();
+            int backLeftPos = backLeftDrive.getCurrentPosition();
+            int backRightPos = backRightDrive.getCurrentPosition();
 
             // soft start
             double currSpeed = speed;
@@ -510,8 +552,8 @@ public abstract class AutoBase extends LinearOpMode {
             }
 
             // Throttle speed down as we approach our target
-            int remainingLeft = driveLeftTarget - leftPos;
-            int remainingRight = driveRightTarget - rightPos;
+            int remainingLeft = driveBackLeftTarget - backLeftPos;
+            int remainingRight = driveBackRightTarget - backRightPos;
             if ((Math.abs(remainingLeft) < brakeOffsetTwo) || (Math.abs(remainingRight) < brakeOffsetTwo)) {
                 currSpeed *= 0.25;
             } else if ((Math.abs(remainingLeft) < brakeOffsetOne) || (Math.abs(remainingRight) < brakeOffsetOne)) {
@@ -549,10 +591,14 @@ public abstract class AutoBase extends LinearOpMode {
         backRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         frontLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         frontRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        driveLeftStart = 0;
-        driveRightStart = 0;
-        driveLeftTarget = 0;
-        driveRightTarget = 0;
+        driveBackLeftStart = 0;
+        driveBackRightStart = 0;
+        driveFrontLeftStart = 0;
+        driveFrontRightStart = 0;
+        driveBackLeftTarget = 0;
+        driveBackRightTarget = 0;
+        driveFrontLeftTarget = 0;
+        driveFrontRightTarget = 0;
         driveLeftSpeed = 0.0f;
         driveRightSpeed = 0.0f;
         driveAngleOffset = 0.0f;
@@ -626,6 +672,11 @@ public abstract class AutoBase extends LinearOpMode {
         return config;
     }
 
+
+    protected void ratCrewWaitSecs(long secs) {
+        ratCrewWaitMillis(secs * 1000);
+    }
+
     protected void ratCrewWaitMillis(long millis){
         long startTime = System.currentTimeMillis();
         long currentTime = startTime;
@@ -695,30 +746,42 @@ public abstract class AutoBase extends LinearOpMode {
     }
 
     protected void openGate() {
-        gate.setPosition(0.0);
+        if (doGate) {
+            gate.setPosition(0.0);
+        }
     }
 
     protected void closeGate() {
-        gate.setPosition(1.0);
+        if (doGate) {
+            gate.setPosition(1.0);
+        }
     }
 
     protected void openFinger() {
-        finger.setPosition(1.0);
+        if (doArm) {
+            finger.setPosition(1.0);
+        }
     }
     protected void closeFinger() {
-        finger.setPosition(0.0);
+        if (doArm) {
+            finger.setPosition(0.0);
+        }
     }
 
     protected void moveArmUp(int mill) {
-        arm.setPower(-0.7);
-        ratCrewWaitMillis(mill);
-        arm.setPower(0);
+        if (doArm) {
+            arm.setPower(-0.7);
+            ratCrewWaitMillis(mill);
+            arm.setPower(0);
+        }
     }
 
     protected void moveArmDown(int mill) {
-        arm.setPower(0.7);
-        ratCrewWaitMillis(mill);
-        arm.setPower(0);
+        if (doArm) {
+            arm.setPower(0.7);
+            ratCrewWaitMillis(mill);
+            arm.setPower(0);
+        }
     }
 
     float getAngleDifference(float from, float to)
@@ -753,4 +816,28 @@ public abstract class AutoBase extends LinearOpMode {
         encoderDrive(-40);
     }
 
+
+    protected void fullTiltForward(int seconds)
+    {
+        backLeftDrive.setPower(0);
+        backRightDrive.setPower(0);
+        frontLeftDrive.setPower(0);
+        frontRightDrive.setPower(0);
+        backLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        backRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        frontLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        frontRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        double power = 1.0;
+        backLeftDrive.setPower(power);
+        backRightDrive.setPower(power);
+        frontLeftDrive.setPower(power);
+        frontRightDrive.setPower(power);
+
+        ratCrewWaitMillis(seconds * 1000);
+        backLeftDrive.setPower(0);
+        backRightDrive.setPower(0);
+        frontLeftDrive.setPower(0);
+        frontRightDrive.setPower(0);
+    }
 }

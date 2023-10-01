@@ -4,12 +4,14 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 /**
  */
-//@Autonomous(name="Box Second", group="AutoTest")
-public class AutoSecondBox extends AutoDriveTest {
+@Autonomous(name="FullTilt 10", group="AutoTest")
+public class AutoFullDrive10 extends AutoDriveTest {
 
     @Override
     public void ratCrewGo() {
-        secondBox();
+        fullTiltForward(10);
+        ratCrewWaitSecs(5);
     }
-
 }
+
+

@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 /**
  */
 @Autonomous(name="Rotate Left 180", group="AutoTest")
-public class AutoTurnAroundLeft extends AutoBase {
+public class AutoTurnAroundLeft extends AutoDriveTest {
 
     @Override
     public void ratCrewGo() {

@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 /**
  */
 @Autonomous(name="Rotate Dance 180", group="AutoTest")
-public class AutoTurnDance extends AutoBase {
+public class AutoTurnDance extends AutoDriveTest {
 
     @Override
     public void ratCrewGo() {

@@ -4,12 +4,16 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 /**
  */
-@Autonomous(name="Straight 24", group="AutoTest")
-public class AutoStraight24 extends AutoDriveTest {
+@Autonomous(name="Straight Fast 110", group="AutoTest")
+public class AutoStraightFast110 extends AutoDriveTest {
+
+    private int distance = 110;
 
     @Override
     public void ratCrewGo() {
-        encoderDrive(24);
+        encoderDrive(distance, distance, 1.0);
         ratCrewWaitSecs(5);
     }
 }
+
+
