@@ -10,7 +10,12 @@ buildscript {
         google()
     }
     dependencies {
+<<<<<<< HEAD
         classpath 'com.android.tools.build:gradle:7.3.0'
+=======
+        // Note for FTC Teams: Do not modify this yourself.
+        classpath 'com.android.tools.build:gradle:7.2.0'
+>>>>>>> f326c0d033b69a476dea0a06bc394103e504a0ca
     }
 }
 
@@ -25,8 +30,4 @@ allprojects {
 
 repositories {
     mavenCentral()
-
-    flatDir {
-        dirs '../libs'
-    }
 }
