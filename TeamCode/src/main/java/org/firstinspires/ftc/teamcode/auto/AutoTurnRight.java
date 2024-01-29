@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 /**
  */
 @Autonomous(name="Rotate Right 90", group="AutoTest")
-public class AutoTurnRight extends AutoDriveTest {
+public class AutoTurnRight extends AutoDriveTest     {
 
     @Override
     public void ratCrewGo() {

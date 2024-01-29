@@ -10,7 +10,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
+//import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 import java.util.ArrayList;
@@ -53,8 +53,8 @@ public abstract class AutoBase extends LinearOpMode {
             "AfgOBrf/////AAABmRjMx12ilksPnWUyiHDtfRE42LuceBSFlCTIKmmNqCn2EOk3I4NtDCSr0wCLFxWPoLR2qHKraX49ofQ2JknI76SJS5Hy8cLbIN+1GlFDqC8ilhuf/Y1yDzKN6a4n0fYWcEPlzHRc8C1V+D8vZ9QjoF3r//FDDtm+M3qlmwA7J/jNy4nMSXWHPCn2IUASoNqybTi/CEpVQ+jEBOBjtqxNgb1CEdkFJrYGowUZRP0z90+Sew2cp1DJePT4YrAnhhMBOSCURgcyW3q6Pl10XTjwB4/VTjF7TOwboQ5VbUq0wO3teE2TXQAI53dF3ZUle2STjRH0Rk8H94VtHm9u4uitopFR7zmxVl3kQB565EUHwfvG";
 
     private static final float NUDGE_ANGLE = 4.0f;
-    private static final float MOTOR_TURN_SPEED = 0.6f;
-    private static final float MOTOR_MOVE_SPEED = 0.8f;
+    private static final float MOTOR_TURN_SPEED = 0.4f;
+    private static final float MOTOR_MOVE_SPEED = 0.6f;
     private static final float WHEEL_DIAMETER = 4.0f;
     private static final long WAIT_TIME = TimeUnit.SECONDS.toMillis(5L);
     private static final float RAT_FUDGE = 0.98f;
@@ -93,6 +93,9 @@ public abstract class AutoBase extends LinearOpMode {
     protected DcMotor arm;
     protected Servo finger;
 
+    protected boolean doThePurplePixelPlopper = true;
+    protected Servo thePurplePixelPlopper;
+
     protected boolean doGate = false;
     protected Servo gate;
 
@@ -102,7 +105,7 @@ public abstract class AutoBase extends LinearOpMode {
 
     // Instance Members: Vuforia
     protected boolean doVuforia = true;
-    private VuforiaLocalizer vuforia;
+   // private VuforiaLocalizer vuforia;
     private TFObjectDetector tfod;
     private List<Recognition> recognitionsList = new ArrayList<>();
 
@@ -171,6 +174,10 @@ public abstract class AutoBase extends LinearOpMode {
             finger = hardwareMap.get(Servo.class, "finger");
         }
 
+        if (doThePurplePixelPlopper) {
+            thePurplePixelPlopper = hardwareMap.get(Servo.class, "pixelPlopper");
+        }
+
         if (doGate) {
             // dont move!
             gate = hardwareMap.get(Servo.class, "gate");
@@ -191,7 +198,7 @@ public abstract class AutoBase extends LinearOpMode {
                 // to artificially zoom in to the center of image.  For best results, the "aspectRatio" argument
                 // should be set to the value of the images used to create the TensorFlow Object Detection model
                 // (typically 16/9).
-                tfod.setZoom(1.0, 16.0/9.0);
+                //tfod.setZoom(1.0, 16.0/9.0);
             }
         }
 
@@ -506,8 +513,8 @@ public abstract class AutoBase extends LinearOpMode {
         isDriving = true;
         driveBackLeftStart = backLeftDrive.getCurrentPosition();
         driveBackRightStart = backRightDrive.getCurrentPosition();
-        driveFrontLeftStart = backLeftDrive.getCurrentPosition();
-        driveFrontRightStart = backRightDrive.getCurrentPosition();
+        driveFrontLeftStart = frontLeftDrive.getCurrentPosition();
+        driveFrontRightStart = frontRightDrive.getCurrentPosition();
 
         int leftNew = (int) (leftInches * countsPerInch * RAT_FUDGE);
         int rightNew = (int) (rightInches * countsPerInch * RAT_FUDGE);
@@ -517,17 +524,20 @@ public abstract class AutoBase extends LinearOpMode {
         driveFrontRightTarget = driveFrontRightStart + rightNew;
         backLeftDrive.setTargetPosition(driveBackLeftTarget);
         backRightDrive.setTargetPosition(driveBackRightTarget);
+        frontLeftDrive.setTargetPosition(driveFrontLeftTarget);
+        frontRightDrive.setTargetPosition(driveFrontRightTarget);
 
         // Turn On RUN_TO_POSITION
         backLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         backRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        frontLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        frontRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-        // Compute the braking zones.
+        // Compute the braking zones (based on back wheels).
         int leftBrakeOne = driveBackLeftStart + brakeOffsetOne; // how many remaining will trigger it
         int rightBrakeOne = driveBackRightStart + brakeOffsetOne;
         int leftBrakeTwo = driveBackLeftStart + brakeOffsetTwo;
         int rightBrakeTwo = driveBackRightStart + brakeOffsetTwo;
-
 
         // keep looping while we are still active, and there is time left, and both motors are running.
         // Note: We use (isBusy() && isBusy()) in the loop test, which means that when EITHER motor hits
@@ -610,24 +620,26 @@ public abstract class AutoBase extends LinearOpMode {
      * Initialize the Vuforia localization engine.
      */
     private void initVuforia() {
-        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
+       /* VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
         parameters.vuforiaLicenseKey = VUFORIA_KEY;
         parameters.cameraName = hardwareMap.get(WebcamName.class, "Webcam");
         //  Instantiate the Vuforia engine
         vuforia = ClassFactory.getInstance().createVuforia(parameters);
+
+        */
     }
 
     /**
      * Initialize the TensorFlow Object Detection engine.
      */
     private void initTfod() {
-        int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
+       /* int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
                 "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
         tfodParameters.minResultConfidence = 0.5f; // 0.75f;
         tfodParameters.isModelTensorFlow2 = true;
         tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
-        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABELS);
+        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABELS); */
     }
 
 
@@ -765,6 +777,14 @@ public abstract class AutoBase extends LinearOpMode {
     protected void closeFinger() {
         if (doArm) {
             finger.setPosition(0.0);
+        }
+    }
+
+    protected void plopThePurplePixel() {
+        if(doThePurplePixelPlopper) {
+            thePurplePixelPlopper.setPosition(1.0);
+            ratCrewWaitSecs(1);
+            thePurplePixelPlopper.setPosition(0.0);
         }
     }
 

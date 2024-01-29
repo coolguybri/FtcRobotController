@@ -14,48 +14,41 @@ import com.qualcomm.robotcore.util.Range;
 @TeleOp(name="Fruity Flame CenterStage!", group="AAA")
 public class BareBones_CenterStage extends OpMode {
 
-    // Instance Members.
+    // Throttler
+    private enum ThrottlerGear {
+        GEAR_TWO,
+        GEAR_ONE,
+    };
+    private boolean throttlerButtonLast = false;
+    private ThrottlerGear throttlerGear = ThrottlerGear.GEAR_ONE;
+    private boolean armThrottlerButtonLast = false;
+    private ThrottlerGear armThrottlerGear = ThrottlerGear.GEAR_ONE;
+
+    // Wheels
     private boolean doMotors = true;
     private DcMotor backLeftDrive;
     private DcMotor backRightDrive;
     private DcMotor frontLeftDrive;
     private DcMotor frontRightDrive;
-    private double motorScaler = 1.0f;
 
-    private boolean doGate = true;
-    private boolean gateClosed = false;
-    private boolean gateLastTrigger = false;
-    private Servo gate;
+    // FunkyArm
+    private boolean doFunkyArm = true;
+    private Servo funkyClaw;
+    private boolean funkyClawLock = false;
+    private boolean funkyClawButtonLast = false;
+    private Servo funkyWrist;
+    private DcMotor funkyShoulder;
+    private DcMotor funkyShoulder2;
+    private int funkyShoulderStartPos = 0;
+    private int funkyShoulderEndPos = 0;
 
-
-    private boolean doArm = false;
-    private DcMotor arm;
-    private double angleHand;
-    private double armScaler = 1.0f;
-    private Servo finger;
-    private boolean fingerClosed = false;
-    private boolean fingerLastTrigger = false;
-
-    private boolean vigourousAttack = false;
-    private int vigourousState = 0;
-
-    private boolean doTail = false;
-    private Servo tail; // The servo motor device
-    private boolean tailAttackPressed = false; // If the button pressed?
-    private int tailAttackCounter = 0;
-    private boolean tailDirection = true;
-
-    private boolean doOnePuncher = false;
-    private DcMotor puncher;
-
-    private boolean doDriller = false;
-    private DcMotor driller;
-
+    // Drone Launcher
     private boolean doDroneLauncher = true;
-    private DcMotor launcherLeft;
-    private DcMotor launcherRight;
+    private Servo launcherLatch;
 
-    private boolean phineas = true;
+    // Piper's Purple Pixel Plopper
+    private boolean doPurplePixelPlopper = true;
+    private Servo purplePixelPlopper;
 
     // Called once, right after hitting the Init button.
     @Override
@@ -63,204 +56,126 @@ public class BareBones_CenterStage extends OpMode {
 
         if (doMotors) {
             // Initialize Motors, finding them through the hardware map.
-            backLeftDrive = hardwareMap.get(DcMotor.class, "motorLeftRear");
-            backRightDrive = hardwareMap.get(DcMotor.class, "motorRightRear");
             frontLeftDrive = hardwareMap.get(DcMotor.class, "motorLeftFront");
             frontRightDrive = hardwareMap.get(DcMotor.class, "motorRightFront");
+            backLeftDrive = hardwareMap.get(DcMotor.class, "motorLeftRear");
+            backRightDrive = hardwareMap.get(DcMotor.class, "motorRightRear");
 
-            if (phineas) {
-                frontLeftDrive.setDirection(DcMotor.Direction.FORWARD);
-                frontRightDrive.setDirection(DcMotor.Direction.REVERSE);
-                backLeftDrive.setDirection(DcMotor.Direction.FORWARD);
-                backRightDrive.setDirection(DcMotor.Direction.REVERSE);
-            } else {
-                frontLeftDrive.setDirection(DcMotor.Direction.REVERSE);
-                frontRightDrive.setDirection(DcMotor.Direction.FORWARD);
-                backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
-                backRightDrive.setDirection(DcMotor.Direction.FORWARD);
-            }
+            // This changes based on the gear box.
+            frontLeftDrive.setDirection(DcMotor.Direction.FORWARD);
+            frontRightDrive.setDirection(DcMotor.Direction.REVERSE);
+            backLeftDrive.setDirection(DcMotor.Direction.FORWARD);
+            backRightDrive.setDirection(DcMotor.Direction.REVERSE);
 
             // Set all motors to zero power.
-            backLeftDrive.setPower(0);
-            backRightDrive.setPower(0);
             frontLeftDrive.setPower(0);
             frontRightDrive.setPower(0);
+            backLeftDrive.setPower(0);
+            backRightDrive.setPower(0);
 
-            // Set all motors to run without encoders.
-            // May want to use RUN_USING_ENCODERS if encoders are installed.
+            // Set all motors to run without encoders; manual control.
             backLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             backRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             frontLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             frontRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
-            motorScaler = 1.0;
         }
 
-        // TODO: this gate is not used! Delete it!
-        if (doGate) {
-            // Initialize Motors, finding them through the hardware map.
-            gate = hardwareMap.get(Servo.class, "gate");
-            gateClosed = false;
-            gateLastTrigger = false;
-
-            // init the servo position
-            clawRelease();
-        }
-
-        if (doArm) {
-            arm = hardwareMap.get(DcMotor.class, "arm");
-            armScaler = 1.0;
-
-            // init the servo position
-            finger = hardwareMap.get(Servo.class, "finger");
-            fingerClosed = false;
-            fingerLastTrigger = false;
-            finger.setPosition(0.0);
-        }
-
-        if (doTail) {
-            // Initialize Motors, finding them through the hardware map.
-            tail = hardwareMap.get(Servo.class, "tail");
-            tail.setPosition(0.0);
-        }
-
-        /* One Puncher Weapon! */
-        boolean errOnePuncher = false;
-        if (doOnePuncher) {
+        boolean errFunkyArm = false;
+        if (doFunkyArm) {
             try {
-                puncher = hardwareMap.get(DcMotor.class, "puncher");
-                puncher.setDirection(DcMotor.Direction.REVERSE);
-                puncher.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-                puncher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                puncher.setPower(0);
+                // claw
+                funkyClawButtonLast = false;
+                funkyClawLock = true;
+                funkyClaw = hardwareMap.get(Servo.class, "funkyClaw");
+                funkyClaw.setPosition(0.0); // start clamped
+
+                // wrist
+                funkyWrist = hardwareMap.get(Servo.class, "funkyWrist");
+                //funkyWrist.setPosition(0.0);
+
+                 // shoulder
+                funkyShoulder = hardwareMap.get(DcMotor.class, "funkyShoulder");
+                funkyShoulder.setDirection(DcMotor.Direction.FORWARD);
+                funkyShoulder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                funkyShoulder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                funkyShoulder.setPower(0);
+
+                funkyShoulder2 = hardwareMap.get(DcMotor.class, "funkyShoulder2");
+                funkyShoulder2.setDirection(DcMotor.Direction.REVERSE);
+                funkyShoulder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                funkyShoulder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                funkyShoulder.setPower(0);
+
+                funkyShoulderStartPos = funkyShoulder.getCurrentPosition();
+                funkyShoulderEndPos = funkyShoulderStartPos + 200;
             } catch (Exception e) {
-                doOnePuncher = false;
-                errOnePuncher = true;
+                doFunkyArm = false;
+                errFunkyArm = true;
+                telemetry.addData("Error", "FunkyArm: %s", e.getMessage());
             }
         }
 
-        /* One Puncher Weapon! */
-        boolean errDriller = false;
-        if (doDriller) {
-            try {
-                driller = hardwareMap.get(DcMotor.class, "driller");
-                driller.setDirection(DcMotor.Direction.REVERSE);
-                driller.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-                driller.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                driller.setPower(0);
-            } catch (Exception e) {
-                doDriller = false;
-                errDriller = true;
-            }
-        }
-
-        /* One Puncher Weapon! */
         boolean errDroneLauncher = false;
         if (doDroneLauncher) {
             try {
-                launcherLeft = hardwareMap.get(DcMotor.class, "launcherLeft");
-                launcherLeft.setDirection(DcMotor.Direction.REVERSE);
-                launcherLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-                launcherLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                launcherLeft.setPower(0);
-
-                launcherRight = hardwareMap.get(DcMotor.class, "launcherRight");
-                launcherRight.setDirection(DcMotor.Direction.FORWARD);
-                launcherRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-                launcherRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                launcherRight.setPower(0);
+                launcherLatch = hardwareMap.get(Servo.class, "launcherLatch");
+                launcherLatch.setPosition(0.5);
             } catch (Exception e) {
                 doDroneLauncher = false;
                 errDroneLauncher = true;
+                telemetry.addData("Error", "DroneLauncher: %s", e.getMessage());
+            }
+        }
+
+        boolean errPurplePixelPlopper = false;
+        if (doPurplePixelPlopper) {
+            try {
+                purplePixelPlopper = hardwareMap.get(Servo.class, "pixelPlopper");
+                purplePixelPlopper.setPosition(0.0);
+            } catch (Exception e) {
+                doPurplePixelPlopper = false;
+                errPurplePixelPlopper = true;
+                telemetry.addData("Error", "PurplePixelPlopper: %s", e.getMessage());
             }
         }
 
         telemetry.addData("Yo", "Initialized Drive, motors=%b", doMotors);
-        telemetry.addData("Yo", "Initialized Gate, servo=%b", doGate);
-        telemetry.addData("Yo", "Initialized OnePunchMan, do=%s, err=%s", doOnePuncher, errOnePuncher);
-        telemetry.addData("Yo", "Initialized Driller, do=%s, err=%s", doDriller, errDriller);
+        telemetry.addData("Yo", "Initialized FunkyArm, do=%s, err=%s", doFunkyArm, errFunkyArm);
         telemetry.addData("Yo", "Initialized Launcher, do=%s, err=%s", doDroneLauncher, errDroneLauncher);
+        telemetry.addData("Yo", "Initialized PPP, do=%s, err=%s", doPurplePixelPlopper, errPurplePixelPlopper);
     }
 
     // Called repeatedly, right after hitting start, up until hitting stop.
     @Override
     public void loop() {
 
-        // Change the motorScalers.
-        if (gamepad1.a) {
-            motorScaler = 1.0;
-        } else if (gamepad1.b) {
-            motorScaler = 0.8;
-        } else if (gamepad1.y) {
-            armScaler = 0.4;
-        } else if (gamepad1.x) {
-            armScaler = 0.8;
+        // Motor Throttler: X button
+        boolean throttlerButtonNow = gamepad1.x;
+        if (!throttlerButtonLast && throttlerButtonNow) {
+            switch (throttlerGear) {
+                case GEAR_TWO:
+                    throttlerGear = ThrottlerGear.GEAR_ONE;
+                    break;
+                case GEAR_ONE:
+                    throttlerGear = ThrottlerGear.GEAR_TWO;
+                    break;
+            }
         }
+        throttlerButtonLast = throttlerButtonNow;
 
-        // Special Vigorous Atack Mode
-        if (gamepad1.left_bumper) {
-            if (!vigourousAttack) {
-                vigourousAttack = true;
-                vigourousState = 0;
+        // Arm throttler: Left Bumper
+        boolean armThrottlerButtonNow = gamepad1.left_bumper;
+        if (!armThrottlerButtonLast && armThrottlerButtonNow) {
+            switch (armThrottlerGear) {
+            case GEAR_TWO:
+                armThrottlerGear = ThrottlerGear.GEAR_ONE;
+                break;
+            case GEAR_ONE:
+                armThrottlerGear = ThrottlerGear.GEAR_TWO;
+                break;
             }
-
-            // increment state.
-            vigourousState++;
-
-            // Compute direction change time.
-            double shakePower = 1.0;
-            boolean direction = true;
-            int directionDuration = 15;
-            int directionShift = (vigourousState % (directionDuration * 2));
-            if (directionShift > directionDuration) {
-                direction = !direction;
-            }
-
-            if (direction) {
-              nudgeLeft(shakePower);
-            } else {
-              nudgeRight(shakePower);
-            }
-            try {
-                sleep(20);
-            } catch (Exception e) {
-            }
-        } else {
-            vigourousAttack = false;
-            vigourousState = 0;
         }
-
-
-        // Detect special Tail Attack Mode
-        /*if (gamepad1.right_bumper) {
-            // Detect if they just pressed the button down for the first time (as opposed to holding it down for a while.
-            // Reset the counter, and the iniitla direction.
-            if (!tailAttackPressed) {
-                tailAttackPressed = true;
-                tailAttackCounter = 0;
-                tailDirection = true;
-            }
-
-            // increment the counter - the number of program loops we have had the button down.
-            tailAttackCounter++;
-
-            // Every X loops, switch directions. Detect this by swtiching evertime the counter hits a number divisible by 15.
-            int directionShiftTrigger = (tailAttackCounter % 250);
-            if (directionShiftTrigger == 0) {
-                tailDirection = !tailDirection;
-            }
-
-            // Set the servo to the farthest position for whatever direction it is supposed to be in right now.
-            if (tailDirection) {
-                tail.setPosition((0.0));
-            } else {
-                tail.setPosition((1.0));
-            }
-
-        } else {
-            tailAttackPressed = false;
-            tailAttackCounter = 0;
-        } */
+        armThrottlerButtonLast = armThrottlerButtonNow;
 
         if (doMotors) {
             double leftBackPower = 0.0;
@@ -268,24 +183,34 @@ public class BareBones_CenterStage extends OpMode {
             double leftFrontPower = 0.0;
             double rightFrontPower = 0.0;
 
-                //keep drive the same, turn--switch to right joystic
-                double drive = -gamepad1.left_stick_y;
-                if (Math.abs(drive) < 0.1) {
-                    drive = -gamepad1.right_stick_y;
-                }
-                double turn = gamepad1.right_stick_x;
-                double strafe = gamepad1.left_stick_x;
-                if (Math.abs(turn) > 0.1) {
-                    leftBackPower = Range.clip(drive + turn, -1.0, 1.0);
-                    leftFrontPower = Range.clip(drive + turn, -1.0, 1.0);
-                    rightBackPower = Range.clip(drive - turn, -1.0, 1.0);
-                    rightFrontPower = Range.clip(drive - turn, -1.0, 1.0);
-                } else {
-                    leftBackPower = Range.clip(drive - strafe, -1.0, 1.0);
-                    leftFrontPower = Range.clip(drive + strafe, -1.0, 1.0);
-                    rightBackPower = Range.clip(drive + strafe, -1.0, 1.0);
-                    rightFrontPower = Range.clip(drive - strafe, -1.0, 1.0);
-                }
+            double motorScaler = 1.0;
+            switch (throttlerGear) {
+            case GEAR_TWO:
+                motorScaler = 0.75;
+                break;
+            case GEAR_ONE:
+                motorScaler = 0.4;
+                break;
+            }
+
+            //keep drive the same, turn--switch to right joystic
+            double drive = -gamepad1.left_stick_y;
+            if (Math.abs(drive) < 0.1) {
+                drive = -gamepad1.right_stick_y;
+            }
+            double turn = gamepad1.right_stick_x;
+            double strafe = gamepad1.left_stick_x;
+            if (Math.abs(turn) > 0.1) {
+                leftBackPower = Range.clip(drive + turn, -1.0, 1.0);
+                leftFrontPower = Range.clip(drive + turn, -1.0, 1.0);
+                rightBackPower = Range.clip(drive - turn, -1.0, 1.0);
+                rightFrontPower = Range.clip(drive - turn, -1.0, 1.0);
+            } else {
+                leftBackPower = Range.clip(drive - strafe, -1.0, 1.0);
+                leftFrontPower = Range.clip(drive + strafe, -1.0, 1.0);
+                rightBackPower = Range.clip(drive + strafe, -1.0, 1.0);
+                rightFrontPower = Range.clip(drive - strafe, -1.0, 1.0);
+            }
 
             // Send calculated power to wheels
             backLeftDrive.setPower(leftBackPower * motorScaler);
@@ -298,137 +223,81 @@ public class BareBones_CenterStage extends OpMode {
             telemetry.addData("right", "%.1f (%.1f x %.1f)", rightFrontPower * motorScaler, rightFrontPower, motorScaler);
         }
 
-       /* if (doGate) {
-            // find the trigger for state change.
-            double gateDetail = gamepad1.left_trigger;
-            if (gateDetail != 0.0) {
-                clawSet(gateDetail);
-            } /* else {
-                boolean thisTrigger = gamepad1.left_bumper;
-                if (thisTrigger && !gateLastTrigger) {
-                    this.gateClosed = !this.gateClosed;
-                }
-                gateLastTrigger = thisTrigger;
-
-                if (this.gateClosed) {
-                    clawPince();
-                } else {
-                    clawRelease();
-                }
+        if (doFunkyArm) {
+            // Claw Servo
+            boolean funkyClawButtonNow = gamepad1.right_bumper;
+            if (!funkyClawButtonLast && funkyClawButtonNow) {
+                funkyClawLock = !funkyClawLock;
             }
-        } */
+            funkyClawButtonLast = funkyClawButtonNow;
 
-        if (doDriller) {
-            double drive = gamepad1.left_trigger;
-            driller.setPower(drive);
-            telemetry.addData("driller", "%.1f", drive);
-        }
+            double funkyClawNewPosition = 1.0;
+            if (funkyClawLock) {
+                funkyClawNewPosition = 0.0;
+            }
+            funkyClaw.setPosition(funkyClawNewPosition);
+            telemetry.addData("funcClaw", "actual=%.1f, desire=%.1f", funkyClaw.getPosition(), funkyClawNewPosition);
 
-        if (doDroneLauncher) {
-            double drive = gamepad1.left_trigger;
-            launcherLeft.setPower(drive);
-            launcherRight.setPower(drive);
-            telemetry.addData("launcher", "%.1f", drive);
-        }
+            // Wrist servo
+            int wristControlDirection = 0;
+            if (gamepad1.left_trigger > 0.1) {
+                wristControlDirection = 1;
+            } else if (gamepad1.right_trigger > 0.1) {
+                wristControlDirection = -1;
+            }
+            /*if (gamepad1.dpad_right) {
+                wristControlDirection = 1;
+            } else if (gamepad1.dpad_left) {
+                wristControlDirection = -1;
+            } */
 
-        if (doArm) {
-            // controls the actual arm
+            double wristCurrent = funkyWrist.getPosition();
+            double clampedPosition = 0.0;
+            if (wristControlDirection != 0) {
+                double wristStep = 0.002; // the bigger this is, the faster it will move
+                double newPosition = wristCurrent + (wristStep * wristControlDirection);
+                clampedPosition = Math.max(0.0, Math.min(1.0, newPosition));
+                funkyWrist.setPosition(clampedPosition);
+            }
+            telemetry.addData("funkWrst", "actual=%.1f, desired=%.1f, desired-dir=%d", wristCurrent, clampedPosition, wristControlDirection);
+
+            // Shoulder (DCmotor)
+            double armMotorScaler = 1.0;
+            switch (armThrottlerGear) {
+            case GEAR_TWO:
+                armMotorScaler = 1.0;
+                break;
+            case GEAR_ONE:
+                armMotorScaler = 0.5;
+                break;
+            }
             double armPower = 0.0;
             if (gamepad1.dpad_up) {
                 armPower = -1.0;
             } else if (gamepad1.dpad_down) {
                 armPower = 1.0;
             }
-
-            arm.setPower(armPower * armScaler);
-            telemetry.addData("arm", "%.1f (%.1f x %.1f)", armPower * armScaler, armPower, armScaler);
-
-            // controls the finger with the right trigger
-            double fingerDetail = gamepad1.right_trigger;
-            if (Math.abs(fingerDetail) > 0.1) {
-                finger.setPosition(1.0f - fingerDetail);
-            }
-
-            telemetry.addData("finger", "%.1f", finger.getPosition());
+            funkyShoulder.setPower(armPower * armMotorScaler);
+            funkyShoulder2.setPower(armPower * armMotorScaler);
+            telemetry.addData("funkShdr", "%.1f (%.1f x %.1f), boost=%b", armPower * armMotorScaler, armPower, armMotorScaler, gamepad1.b);
         }
 
-        if (doOnePuncher) {
-
-            // Status update.
-            int currPos = puncher.getCurrentPosition();
-            telemetry.addData("puncher", "curr=%d", currPos);
-
-            if (gamepad1.right_bumper) {
-                double punchPower = 1.0;
-                int distance = 900;
-                telemetry.addData("puncher2", "curr=%d", currPos);
-
-                ElapsedTime motorOnTime;
-                int startPos = puncher.getCurrentPosition();
-                int endPos = (int) startPos + distance;
-
-                // Punch out
-                puncher.setTargetPosition(endPos);
-                puncher.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                motorOnTime = new ElapsedTime();
-                puncher.setPower(punchPower);
-                while (puncher.isBusy() && motorOnTime.seconds() < 5) {
-                    currPos = puncher.getCurrentPosition();
-                    telemetry.addData("puncher-move", "start=%d, end=%d, curr=%d, dist=%d, busy=%b)",
-                            startPos, endPos, currPos, distance, puncher.isBusy());
-                    telemetry.update();
-                }
-                puncher.setPower(0);
-
-                // Retract post-punch
-                puncher.setTargetPosition(startPos);
-                puncher.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                motorOnTime = new ElapsedTime();
-                puncher.setPower(-punchPower);
-                while (puncher.isBusy() && motorOnTime.seconds() < 5) {
-                    currPos = puncher.getCurrentPosition();
-                    telemetry.addData("puncher-move2", "start=%d, end=%d, curr=%d, dist=%d, busy=%b)",
-                            startPos, endPos, currPos, distance, puncher.isBusy());
-                    telemetry.update();
-                }
-                puncher.setPower(0);
+        if (doDroneLauncher) {
+            if (gamepad1.a) {
+                launcherLatch.setPosition(1.0);
+            } else {
+                launcherLatch.setPosition(0.5);
             }
+        }
 
+        if (doPurplePixelPlopper) {
+           if (gamepad1.y) {
+                purplePixelPlopper.setPosition(1.0);
+            } else {
+                 purplePixelPlopper.setPosition(0.0);
+            }
         }
 
         telemetry.addData("Status", "Run Clock: %.2f", getRuntime());
-    }
-
-
-
-    private void clawPince() {
-        clawSet(0.8);
-    }
-
-    private void clawRelease() {
-        clawSet(0.2);
-    }
-
-    private void clawSet(double newValue) {
-        if (doGate) {
-            if (newValue < 0.2)
-                newValue = 0.2;
-            angleHand = newValue;
-            gate.setPosition(newValue);
-        }
-    }
-
-    protected void nudgeLeft(double power) {
-        backLeftDrive.setPower(-power);
-        backRightDrive.setPower(power);
-        frontLeftDrive.setPower(-power);
-        frontRightDrive.setPower(power);
-    }
-
-    protected void nudgeRight(double power) {
-        backLeftDrive.setPower(power);
-        backRightDrive.setPower(-power);
-        frontLeftDrive.setPower(power);
-        frontRightDrive.setPower(-power);
     }
 }
