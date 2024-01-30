@@ -105,7 +105,9 @@ public abstract class AutoBase extends LinearOpMode {
 
     // Instance Members: Vuforia
     protected boolean doVuforia = true;
+
    // private VuforiaLocalizer vuforia;
+
     private TFObjectDetector tfod;
     private List<Recognition> recognitionsList = new ArrayList<>();
 
@@ -185,7 +187,7 @@ public abstract class AutoBase extends LinearOpMode {
 
         initGyroscope();
 
-        if (doVuforia) {
+       /* if (doVuforia) {
             initVuforia();
             initTfod();
 
@@ -198,9 +200,9 @@ public abstract class AutoBase extends LinearOpMode {
                 // to artificially zoom in to the center of image.  For best results, the "aspectRatio" argument
                 // should be set to the value of the images used to create the TensorFlow Object Detection model
                 // (typically 16/9).
-                //tfod.setZoom(1.0, 16.0/9.0);
+               // tfod.setZoom(1.0, 16.0/9.0);
             }
-        }
+        } */
 
         // Init run state.
         madeTheRun = false;
@@ -619,21 +621,25 @@ public abstract class AutoBase extends LinearOpMode {
     /**
      * Initialize the Vuforia localization engine.
      */
+
     private void initVuforia() {
        /* VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
+
         parameters.vuforiaLicenseKey = VUFORIA_KEY;
         parameters.cameraName = hardwareMap.get(WebcamName.class, "Webcam");
         //  Instantiate the Vuforia engine
-        vuforia = ClassFactory.getInstance().createVuforia(parameters);
+        vuforia = ClassFactory.getInstance().createVuforia(parameters); */
+    } 
 
-        */
-    }
+
+
 
     /**
      * Initialize the TensorFlow Object Detection engine.
      */
     private void initTfod() {
-       /* int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
+
+      /*  int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
                 "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
         tfodParameters.minResultConfidence = 0.5f; // 0.75f;
