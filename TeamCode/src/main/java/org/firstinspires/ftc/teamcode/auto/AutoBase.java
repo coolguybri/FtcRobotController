@@ -89,8 +89,10 @@ public abstract class AutoBase extends LinearOpMode {
     protected boolean doGyro = true;
     private IMU imu;
 
-    protected boolean doArm = false;
+    protected boolean doArm = true;
     protected DcMotor arm;
+
+    protected boolean doFinger = false;
     protected Servo finger;
 
     protected boolean doThePurplePixelPlopper = true;
@@ -105,7 +107,6 @@ public abstract class AutoBase extends LinearOpMode {
 
     // Instance Members: Vuforia
     protected boolean doVuforia = true;
-
    // private VuforiaLocalizer vuforia;
 
     private TFObjectDetector tfod;
@@ -170,9 +171,11 @@ public abstract class AutoBase extends LinearOpMode {
         }
 
         if (doArm) {
-            arm = hardwareMap.get(DcMotor.class, "arm");
+            arm = hardwareMap.get(DcMotor.class, "funkyShoulder");
             arm.setPower(0);
+        }
 
+        if (doFinger) {
             finger = hardwareMap.get(Servo.class, "finger");
         }
 
@@ -776,12 +779,12 @@ public abstract class AutoBase extends LinearOpMode {
     }
 
     protected void openFinger() {
-        if (doArm) {
+        if (doFinger) {
             finger.setPosition(1.0);
         }
     }
     protected void closeFinger() {
-        if (doArm) {
+        if (doFinger) {
             finger.setPosition(0.0);
         }
     }
