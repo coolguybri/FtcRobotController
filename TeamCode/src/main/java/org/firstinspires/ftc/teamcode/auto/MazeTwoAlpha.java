@@ -4,11 +4,49 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 /**
  */
-@Autonomous(name="Maze One", group="DanceDemo")
-public class MazeOne extends AutoDriveTest {
+@Autonomous(name="Maze Two PeterPiper", group="DanceDemo")
+public class MazeTwoAlpha extends AutoDriveTest {
 
     @Override
     public void ratCrewGo() {
+
+        /// begin
+        encoderDrive(35); //  drives forward X inches
+
+        turnLeft(45); // turns x degrees
+        ratCrewWaitSecs(1);
+        encoderDrive(57); //  drives forward X inches 75 TTOO MUCH
+        ratCrewWaitSecs(1);
+        //turnLeft(90);too much 90
+        turnLeft(80);
+
+        //encoderDrive(75); //  drives forward X inches
+        encoderDrive(70); //  drives forward X inches
+
+
+
+        turnLeft(90);
+        encoderDrive(30);
+
+        turnLeft(150);
+        encoderDrive(125);
+        turnRight(96);
+        encoderDrive(75);
+        turnRight(54);
+        encoderDrive(75);
+        /*
+        turnRight(10);
+        encoderDrive(92);
+        turnRight(90);
+        encoderDrive(85);
+        turnRight(45);
+        encoderDrive(45); */
+
+
+
+
+        /*
+
         encoderDrive(29); //  drives forward X inches
 
         // turnLeft(90); // not far enough! crashed right pole
@@ -32,6 +70,9 @@ public class MazeOne extends AutoDriveTest {
         encoderDrive(71); // 59 was not far enough didn't cross the truss
         turnRight(58);
         encoderDrive(60);
+        */
+
+
 
         // test change.
     }
