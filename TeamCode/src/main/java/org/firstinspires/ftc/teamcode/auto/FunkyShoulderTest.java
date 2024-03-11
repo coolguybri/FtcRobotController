@@ -9,9 +9,12 @@ public class FunkyShoulderTest extends AutoDriveTest {
 
     @Override
     public void ratCrewGo() {
-        moveArmDown(1000);
-        moveArmUp(500);
-        moveArmDown(500);
+        moveArmDown(2000);
+        ratCrewWaitMillis(500);
+        openFinger();
+        ratCrewWaitMillis(500);
+        closeFinger();
+
 
         // test change.
     }

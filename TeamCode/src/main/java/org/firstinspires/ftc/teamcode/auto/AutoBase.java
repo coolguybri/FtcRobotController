@@ -8,8 +8,6 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import org.firstinspires.ftc.robotcore.external.ClassFactory;
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 //import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
@@ -92,8 +90,9 @@ public abstract class AutoBase extends LinearOpMode {
     protected boolean doArm = true;
     protected DcMotor arm;
 
-    protected boolean doFinger = false;
+    protected boolean doFinger = true;
     protected Servo finger;
+    protected Servo wrist;
 
     protected boolean doThePurplePixelPlopper = true;
     protected Servo thePurplePixelPlopper;
@@ -176,7 +175,8 @@ public abstract class AutoBase extends LinearOpMode {
         }
 
         if (doFinger) {
-            finger = hardwareMap.get(Servo.class, "finger");
+            finger = hardwareMap.get(Servo.class, "funkyClaw");
+            wrist = hardwareMap.get(Servo.class, "funkyWrist");
         }
 
         if (doThePurplePixelPlopper) {
@@ -786,6 +786,18 @@ public abstract class AutoBase extends LinearOpMode {
     protected void closeFinger() {
         if (doFinger) {
             finger.setPosition(0.0);
+        }
+    }
+
+
+    protected void raiseWrist() {
+        if (doFinger) {
+            wrist.setPosition(1.0);
+        }
+    }
+    protected void lowerWrist() {
+        if (doFinger) {
+            wrist.setPosition(0.0);
         }
     }
 
