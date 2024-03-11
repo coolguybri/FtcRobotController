@@ -89,6 +89,8 @@ public abstract class AutoBase extends LinearOpMode {
 
     protected boolean doArm = true;
     protected DcMotor arm;
+    private int armStart = 0;
+    private int armTarget = 0;
 
     protected boolean doFinger = true;
     protected Servo finger;
@@ -172,6 +174,8 @@ public abstract class AutoBase extends LinearOpMode {
         if (doArm) {
             arm = hardwareMap.get(DcMotor.class, "funkyShoulder");
             arm.setPower(0);
+            armStart = 0;
+            armTarget = 0;
         }
 
         if (doFinger) {
@@ -467,6 +471,11 @@ public abstract class AutoBase extends LinearOpMode {
                     driveFrontRightStart, frontRightPos, driveFrontRightTarget, driveRightSpeed, frontRightPower);
         } else {
             telemetry.addData("Motor", "DISABLED");
+        }
+
+        if (doArm) {
+            telemetry.addData("Arm", "start=%d, curr=%d, end=%d, pwr=%02.1f",
+                    armStart, arm.getCurrentPosition(), armTarget, arm.getPower());
         }
 
         if (doVuforia) {
@@ -822,6 +831,35 @@ public abstract class AutoBase extends LinearOpMode {
             arm.setPower(0.7);
             ratCrewWaitMillis(mill);
             arm.setPower(0);
+        }
+    }
+
+    protected void moveArmCounter(int counter) {
+        if (doArm) {
+            // Get current position.
+            armStart = arm.getCurrentPosition();
+            armTarget = armStart + counter;
+            printStatus();
+
+            // Tell the motor its end spot, and start it up.
+            arm.setTargetPosition(armTarget);
+            arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+            // Loop and wait until its done.
+            ElapsedTime motorOnTime = new ElapsedTime();
+            boolean keepGoing = true;
+            while (opModeIsActive() && keepGoing && (motorOnTime.seconds() < 30)) {
+                arm.setPower(0.5);
+                printStatus();
+                keepGoing = arm.isBusy();
+            }
+
+            // Clear out the state.
+            printStatus();
+            arm.setPower(0);
+            arm.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            armStart = 0;
+            armTarget = 0;
         }
     }
 
