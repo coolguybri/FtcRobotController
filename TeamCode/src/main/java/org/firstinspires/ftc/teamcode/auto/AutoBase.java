@@ -799,14 +799,19 @@ public abstract class AutoBase extends LinearOpMode {
     }
 
 
-    protected void raiseWrist() {
+    protected void raiseWrist(int i) {
         if (doFinger) {
             wrist.setPosition(1.0);
         }
     }
-    protected void lowerWrist() {
+    protected void lowerWrist(int i) {
         if (doFinger) {
             wrist.setPosition(0.0);
+        }
+    }
+    protected void wristSet(float i) {
+        if (doFinger) {
+            wrist.setPosition(i);
         }
     }
 
