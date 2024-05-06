@@ -5,12 +5,15 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-//import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
-import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.tfod.TfodProcessor;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -19,36 +22,21 @@ import java.util.concurrent.TimeUnit;
  */
 public abstract class AutoBase extends LinearOpMode {
 
-    public enum RingConfig
-    {
-        UNDETERMINED,
-        EMPTY,
-        SINGLE,
-        QUAD,
-    }
-
-    public enum SignalConfig
-    {
-        UNDETERMINED,
-        ONE,
-        TWO,
-        THREE,
-    }
-
     // MAGIC NUMBERS for the motor encoders
     // https://asset.pitsco.com/sharedimages/resources/torquenado_dcmotorspecifications.pdf
     static final float COUNTS_PER_MOTOR_TORKNADO_60 = 1440;  // 24 cycles per revolution, times 60:1 geared down.
     static final float COUNTS_PER_MOTOR_TORKNADO_20 = 480;  // 24 cycles per revolution, times 20:1 geared down.
 
-    // Vuforia Constants
-    private static final String TFOD_MODEL_ASSET = "PowerPlay.tflite";
+    // TFOD_MODEL_ASSET points to a model file stored in the project Asset location,
+    // this is only used for Android Studio when using models in Assets.
+    private static final String TFOD_MODEL_ASSET = "MyModelStoredAsAsset.tflite";
+    // TFOD_MODEL_FILE points to a model file stored onboard the Robot Controller's storage,
+    // this is used when uploading models directly to the RC using the model upload interface.
+    private static final String TFOD_MODEL_FILE = "/sdcard/FIRST/tflitemodels/myCustomModel.tflite";
+    // Define the labels recognized in the model for TFOD (must be in training order!)
     private static final String[] LABELS = {
-            "1 Bolt",
-            "2 Bulb",
-            "3 Panel"
+            "Pixel",
     };
-    private static final String VUFORIA_KEY =
-            "AfgOBrf/////AAABmRjMx12ilksPnWUyiHDtfRE42LuceBSFlCTIKmmNqCn2EOk3I4NtDCSr0wCLFxWPoLR2qHKraX49ofQ2JknI76SJS5Hy8cLbIN+1GlFDqC8ilhuf/Y1yDzKN6a4n0fYWcEPlzHRc8C1V+D8vZ9QjoF3r//FDDtm+M3qlmwA7J/jNy4nMSXWHPCn2IUASoNqybTi/CEpVQ+jEBOBjtqxNgb1CEdkFJrYGowUZRP0z90+Sew2cp1DJePT4YrAnhhMBOSCURgcyW3q6Pl10XTjwB4/VTjF7TOwboQ5VbUq0wO3teE2TXQAI53dF3ZUle2STjRH0Rk8H94VtHm9u4uitopFR7zmxVl3kQB565EUHwfvG";
 
     private static final float NUDGE_ANGLE = 4.0f;
     private static final float MOTOR_TURN_SPEED = 0.4f;
@@ -106,12 +94,33 @@ public abstract class AutoBase extends LinearOpMode {
     private long startTime = System.nanoTime();
     private boolean madeTheRun = false;
 
-    // Instance Members: Vuforia
-    protected boolean doVuforia = true;
-   // private VuforiaLocalizer vuforia;
-
-    private TFObjectDetector tfod;
+    // Instance Members: ObjectDetection
+    protected boolean doObjectDetection = true;
+    private TfodProcessor tfod;
+    private VisionPortal visionPortal;
     private List<Recognition> recognitionsList = new ArrayList<>();
+
+    @Override
+    public void runOpMode(){
+        ratCrewInit();
+        waitForStart();
+
+        printStatus();
+
+        ratCrewStart();
+        printStatus();
+    }
+
+    // Called repeatedly, right after hitting start, up until hitting stop.
+    public void ratCrewStart() {
+        printStatus();
+        ratCrewGo();
+        madeTheRun = true;
+        printStatus();
+    }
+
+    //all Opmodes must override
+    public abstract void ratCrewGo();
 
     // Called once, right after hitting the Init button.
     protected void ratCrewInit() {
@@ -194,12 +203,11 @@ public abstract class AutoBase extends LinearOpMode {
 
         initGyroscope();
 
-       /* if (doVuforia) {
-            initVuforia();
+       if (doObjectDetection) {
             initTfod();
 
             if (tfod != null) {
-                tfod.activate();
+               // tfod.activate();
 
                 // The TensorFlow software will scale the input images from the camera to a lower resolution.
                 // This can result in lower detection accuracy at longer distances (> 55cm or 22").
@@ -208,13 +216,15 @@ public abstract class AutoBase extends LinearOpMode {
                 // should be set to the value of the images used to create the TensorFlow Object Detection model
                 // (typically 16/9).
                // tfod.setZoom(1.0, 16.0/9.0);
+            } else {
+                doObjectDetection = false;
             }
-        } */
+        }
 
         // Init run state.
         madeTheRun = false;
         startTime = 0;
-        telemetry.addData("Init", "motors=%b, gyro=%b, vuforia=%b", doMotors, doGyro, doVuforia);
+        telemetry.addData("Init", "motors=%b, gyro=%b, objectDetect=%b", doMotors, doGyro, doObjectDetection);
         telemetry.update();
     }
 
@@ -232,35 +242,6 @@ public abstract class AutoBase extends LinearOpMode {
         }
     }
 
-    protected void nudgeArmUp() {
-        if (doArm) {
-            arm.setPower(-0.7);
-            ratCrewWaitMillis(500);
-            arm.setPower(0);
-        }
-    }
-
-    @Override
-    public void runOpMode(){
-        ratCrewInit();
-        waitForStart();
-
-        printStatus();
-
-        ratCrewStart();
-        printStatus();
-    }
-
-    //all Opmodes must override
-    public abstract void ratCrewGo();
-
-    // Called repeatedly, right after hitting start, up until hitting stop.
-    public void ratCrewStart() {
-        printStatus();
-        ratCrewGo();
-        madeTheRun = true;
-        printStatus();
-    }
 
     /**
      * @param deltaAngle must be between 0 and 359.9
@@ -436,6 +417,13 @@ public abstract class AutoBase extends LinearOpMode {
         return -ret;
     }
 
+    float getAngleDifference(float from, float to) {
+        float difference = to - from;
+        while (difference < -180) difference += 360;
+        while (difference > 180) difference -= 360;
+        return difference;
+    }
+
     protected void printStatus() {
 
         if (doGyro) {
@@ -478,8 +466,8 @@ public abstract class AutoBase extends LinearOpMode {
                     armStart, arm.getCurrentPosition(), armTarget, arm.getPower());
         }
 
-        if (doVuforia) {
-            telemetry.addData("Tensor", "config=%s, recogs=%d", getRingConfiguration(), recognitionsList.size());
+        if (doObjectDetection) {
+            telemetry.addData("Tensor", "recogs=%d", recognitionsList.size());
         } else {
             telemetry.addData("Tensor", "DISABLED");
         }
@@ -630,58 +618,100 @@ public abstract class AutoBase extends LinearOpMode {
         isDriving = false;
     }
 
+    protected void fullTiltForward(int seconds)
+    {
+        backLeftDrive.setPower(0);
+        backRightDrive.setPower(0);
+        frontLeftDrive.setPower(0);
+        frontRightDrive.setPower(0);
+        backLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        backRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        frontLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        frontRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        double power = 1.0;
+        backLeftDrive.setPower(power);
+        backRightDrive.setPower(power);
+        frontLeftDrive.setPower(power);
+        frontRightDrive.setPower(power);
+
+        ratCrewWaitMillis(seconds * 1000);
+        backLeftDrive.setPower(0);
+        backRightDrive.setPower(0);
+        frontLeftDrive.setPower(0);
+        frontRightDrive.setPower(0);
+    }
+
     /**
-     * Initialize the Vuforia localization engine.
-     */
-
-    private void initVuforia() {
-       /* VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
-
-        parameters.vuforiaLicenseKey = VUFORIA_KEY;
-        parameters.cameraName = hardwareMap.get(WebcamName.class, "Webcam");
-        //  Instantiate the Vuforia engine
-        vuforia = ClassFactory.getInstance().createVuforia(parameters); */
-    } 
-
-
-
-
-    /**
-     * Initialize the TensorFlow Object Detection engine.
+     * Initialize the TensorFlow Object Detection processor.
      */
     private void initTfod() {
 
-      /*  int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
-                "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
-        tfodParameters.minResultConfidence = 0.5f; // 0.75f;
-        tfodParameters.isModelTensorFlow2 = true;
-        tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
-        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABELS); */
-    }
+        // Create the TensorFlow processor by using a builder.
+       tfod = new TfodProcessor.Builder()
+
+                // With the following lines commented out, the default TfodProcessor Builder
+                // will load the default model for the season. To define a custom model to load,
+                // choose one of the following:
+                //   Use setModelAssetName() if the custom TF Model is built in as an asset (AS only).
+                //   Use setModelFileName() if you have downloaded a custom team model to the Robot Controller.
+                //.setModelAssetName(TFOD_MODEL_ASSET)
+                //.setModelFileName(TFOD_MODEL_FILE)
+
+                // The following default settings are available to un-comment and edit as needed to
+                // set parameters for custom models.
+                .setModelLabels(LABELS)
+                .setIsModelTensorFlow2(true)
+                .setIsModelQuantized(true)
+                .setModelInputSize(300)
+                .setModelAspectRatio(16.0 / 9.0)
+               .build();
+
+        // Create the vision portal by using a builder.
+        VisionPortal.Builder builder = new VisionPortal.Builder();
+
+        // Set the camera (webcam vs. built-in RC phone camera).
+        builder.setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"));
+
+        // Choose a camera resolution. Not all cameras support all resolutions.
+        //builder.setCameraResolution(new Size(640, 480));
+
+        // Enable the RC preview (LiveView).  Set "false" to omit camera monitoring.
+        //builder.enableLiveView(true);
+
+        // Set the stream format; MJPEG uses less bandwidth than default YUY2.
+        //builder.setStreamFormat(VisionPortal.StreamFormat.YUY2);
+
+        // Choose whether or not LiveView stops if no processors are enabled.
+        // If set "true", monitor shows solid orange screen if no processors enabled.
+        // If set "false", monitor shows camera view without annotations.
+       // builder.setAutoStopLiveView(false);
+
+        // Set and enable the processor.
+        builder.addProcessor(tfod);
+
+        // Build the Vision Portal, using the above settings.
+        visionPortal = builder.build();
+
+        // Set confidence threshold for TFOD recognitions, at any time.
+        //tfod.setMinResultConfidence(0.75f);
+
+        // Disable or re-enable the TFOD processor at any time.
+        //visionPortal.setProcessorEnabled(tfod, true);
+
+    }   // end method initTfod()
 
 
-    protected RingConfig getRingConfiguration()
+    /*
+    public enum SignalConfig
     {
-        RingConfig currentRings = RingConfig.UNDETERMINED;
-        if (recognitionsList.size() <= 0) {
-            currentRings = RingConfig.EMPTY;
-        }
-        else if (recognitionsList.size() > 1) {
-            currentRings = RingConfig.UNDETERMINED;
-        }
-        else {
-            Recognition r = recognitionsList.get(0);
-            if (r.getLabel().equalsIgnoreCase("quad")){
-                currentRings = RingConfig.QUAD;
-            } else {
-                currentRings = RingConfig.SINGLE;
-            }
-        }
-        return currentRings;
-    }
+        UNDETERMINED,
+        ONE,
+        TWO,
+        THREE,
+    } */
 
-    protected SignalConfig getSignalConfiguration()
+    /*protected SignalConfig getSignalConfiguration()
     {
         SignalConfig config = SignalConfig.UNDETERMINED;
         if (recognitionsList.size() <= 0) {
@@ -700,7 +730,37 @@ public abstract class AutoBase extends LinearOpMode {
             }
             }
         return config;
-    }
+    } */
+
+
+    /*protected SignalConfig SignalIdentifier() {
+        ratCrewWaitMillis(WAIT_TIME);
+
+        if (doVuforia) {
+
+            List<Recognition> updatedRecognitions = tfod.getRecognitions();
+            if (updatedRecognitions != null) {
+                // make a copy of the list
+                recognitionsList = new ArrayList<>(updatedRecognitions);
+            }
+            telemetry.addData("# Object Detected", recognitionsList.size());
+        }
+
+        // step through the list of recognitions and display boundary info.
+        int i = 0;
+
+        for (Recognition recognition : recognitionsList) {
+            telemetry.addData(String.format("label (%d)", i), recognition.getLabel());
+            telemetry.addData(String.format("  left,top (%d)", i), "%.03f , %.03f",
+                    recognition.getLeft(), recognition.getTop());
+            telemetry.addData(String.format("  right,bottom (%d)", i), "%.03f , %.03f",
+                    recognition.getRight(), recognition.getBottom());
+        }
+
+
+        SignalConfig rc = getSignalConfiguration();
+        return rc;
+    } */
 
 
     protected void ratCrewWaitSecs(long secs) {
@@ -721,59 +781,8 @@ public abstract class AutoBase extends LinearOpMode {
         }
     }
 
-    protected RingConfig ringIdentifier() {
-        ratCrewWaitMillis(WAIT_TIME);
 
-        List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
-        if (updatedRecognitions != null) {
-            // make a copy of the list
-            recognitionsList = new ArrayList<>(updatedRecognitions);
-        }
-        telemetry.addData("# Object Detected", recognitionsList.size());
 
-        // step through the list of recognitions and display boundary info.
-        /*int i = 0;
-
-        for (Recognition recognition : recognitionsList) {
-            telemetry.addData(String.format("label (%d)", i), recognition.getLabel());
-            telemetry.addData(String.format("  left,top (%d)", i), "%.03f , %.03f",
-                    recognition.getLeft(), recognition.getTop());
-            telemetry.addData(String.format("  right,bottom (%d)", i), "%.03f , %.03f",
-                    recognition.getRight(), recognition.getBottom());
-        }
-        */
-
-        RingConfig rc = getRingConfiguration();
-        telemetry.addData("RingIdent", "recogs=%d, config=%s", recognitionsList.size(), rc);
-        telemetry.update();
-        return rc;
-    }
-
-    protected SignalConfig SignalIdentifier() {
-        ratCrewWaitMillis(WAIT_TIME);
-
-        List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
-        if (updatedRecognitions != null) {
-            // make a copy of the list
-            recognitionsList = new ArrayList<>(updatedRecognitions);
-        }
-        telemetry.addData("# Object Detected", recognitionsList.size());
-
-        // step through the list of recognitions and display boundary info.
-        /*int i = 0;
-
-        for (Recognition recognition : recognitionsList) {
-            telemetry.addData(String.format("label (%d)", i), recognition.getLabel());
-            telemetry.addData(String.format("  left,top (%d)", i), "%.03f , %.03f",
-                    recognition.getLeft(), recognition.getTop());
-            telemetry.addData(String.format("  right,bottom (%d)", i), "%.03f , %.03f",
-                    recognition.getRight(), recognition.getBottom());
-        }
-        */
-
-        SignalConfig rc = getSignalConfiguration();
-        return rc;
-    }
 
     protected void openGate() {
         if (doGate) {
@@ -823,6 +832,10 @@ public abstract class AutoBase extends LinearOpMode {
         }
     }
 
+    protected void nudgeArmUp() {
+        moveArmUp(500);
+    }
+
     protected void moveArmUp(int mill) {
         if (doArm) {
             arm.setPower(-0.7);
@@ -854,7 +867,7 @@ public abstract class AutoBase extends LinearOpMode {
             ElapsedTime motorOnTime = new ElapsedTime();
             boolean keepGoing = true;
             while (opModeIsActive() && keepGoing && (motorOnTime.seconds() < 30)) {
-                arm.setPower(0.5);
+                arm.setPower(0.25);
                 printStatus();
                 keepGoing = arm.isBusy();
             }
@@ -866,62 +879,5 @@ public abstract class AutoBase extends LinearOpMode {
             armStart = 0;
             armTarget = 0;
         }
-    }
-
-    float getAngleDifference(float from, float to)
-    {
-        float difference = to - from;
-        while (difference < -180) difference += 360;
-        while (difference > 180) difference -= 360;
-        return difference;
-    }
-
-    protected void firstBox() {
-        turnRight(6);
-        encoderDrive(78);
-        openGate();
-        ratCrewWaitMillis(500);
-        encoderDrive(-5);
-    }
-
-    protected void secondBox() {
-        turnLeft(10);
-        encoderDrive(100);
-        openGate();
-        ratCrewWaitMillis(500);
-        encoderDrive(-24);
-    }
-
-    protected void thirdBox() {
-        turnRight(6);
-        encoderDrive(120);
-        openGate();
-        ratCrewWaitMillis(500);
-        encoderDrive(-40);
-    }
-
-
-    protected void fullTiltForward(int seconds)
-    {
-        backLeftDrive.setPower(0);
-        backRightDrive.setPower(0);
-        frontLeftDrive.setPower(0);
-        frontRightDrive.setPower(0);
-        backLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        backRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        frontLeftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        frontRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
-        double power = 1.0;
-        backLeftDrive.setPower(power);
-        backRightDrive.setPower(power);
-        frontLeftDrive.setPower(power);
-        frontRightDrive.setPower(power);
-
-        ratCrewWaitMillis(seconds * 1000);
-        backLeftDrive.setPower(0);
-        backRightDrive.setPower(0);
-        frontLeftDrive.setPower(0);
-        frontRightDrive.setPower(0);
     }
 }

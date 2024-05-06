@@ -11,14 +11,14 @@ public class AutoFinalFruity extends AutoBase {
     public void ratCrewGo() {
         openGate();
         ratCrewWaitMillis(500);
-        SignalConfig rc = SignalIdentifier();
+        //SignalConfig rc = SignalIdentifier();
         printStatus();
 
         ratCrewWaitMillis(500);
-        telemetry.addData("RingSeek", "rc=%s", rc);
+        //telemetry.addData("RingSeek", "rc=%s", rc);
         telemetry.update();
 
-        telemetry.addData("RingConfig", "%s", rc);
+        //telemetry.addData("RingConfig", "%s", rc);
 
         //TODO: Uncomment if needed
         /*
@@ -39,7 +39,7 @@ public class AutoFinalFruity extends AutoBase {
         encoderDrive(-forMove); */
 
 
-        if (rc == SignalConfig.ONE){
+      /*  if (rc == SignalConfig.ONE){
 
             moveArmUp(1000);
 
@@ -72,13 +72,11 @@ public class AutoFinalFruity extends AutoBase {
 
         } else {
             encoderDrive(43);
-        }
+        } */
 
         //tighten up the robot!
         closeGate();
         closeFinger();
         moveArmDown(500);
-
-
     }
 }
