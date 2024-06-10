@@ -98,7 +98,7 @@ public abstract class AutoBase extends LinearOpMode {
     protected boolean doObjectDetection = true;
     private TfodProcessor tfod;
     private VisionPortal visionPortal;
-    private List<Recognition> recognitionsList = new ArrayList<>();
+    protected List<Recognition> recognitionsList = new ArrayList<>();
 
     @Override
     public void runOpMode(){
@@ -427,7 +427,7 @@ public abstract class AutoBase extends LinearOpMode {
     protected void printStatus() {
 
         if (doGyro) {
-            telemetry.addData("Gyro", "angle=%.1f", this.getGyroscopeAngle());
+        //    telemetry.addData("Gyro", "angle=%.1f", this.getGyroscopeAngle());
         } else {
             telemetry.addData("Gyro", "DISABLED");
         }
@@ -447,8 +447,8 @@ public abstract class AutoBase extends LinearOpMode {
 
             telemetry.addData("MotorDrive", "driving=%b, off=%02.1f, corr=%02.1f",
                     isDriving, driveAngleOffset, driveAngleCorrection);
-            telemetry.addData("MotorTurn", "type=%s, now: %02.1f, dest: %02.1f, togo=%02.1f, togo2=%02.1f",
-                    motorTurnType, this.getGyroscopeAngle(), motorTurnDestination, motorTurnAngleToGo, motorTurnAngleAdjustedToGo);
+           // telemetry.addData("MotorTurn", "type=%s, now: %02.1f, dest: %02.1f, togo=%02.1f, togo2=%02.1f",
+            //        motorTurnType, this.getGyroscopeAngle(), motorTurnDestination, motorTurnAngleToGo, motorTurnAngleAdjustedToGo);
             telemetry.addData("MotorLeftBack", "start=%d, curr=%d, end=%d, pwr=%02.1f (%02.1f)",
                     driveBackLeftStart, backLeftPos, driveBackLeftTarget, driveLeftSpeed, backLeftPower);
             telemetry.addData("MotorRightBack", "start=%d, curr=%d, end=%d, pwr=%02.1f (%02.1f)",
@@ -462,12 +462,20 @@ public abstract class AutoBase extends LinearOpMode {
         }
 
         if (doArm) {
-            telemetry.addData("Arm", "start=%d, curr=%d, end=%d, pwr=%02.1f",
-                    armStart, arm.getCurrentPosition(), armTarget, arm.getPower());
+          //  telemetry.addData("Arm", "start=%d, curr=%d, end=%d, pwr=%02.1f",
+           //         armStart, arm.getCurrentPosition(), armTarget, arm.getPower());
         }
 
         if (doObjectDetection) {
-            telemetry.addData("Tensor", "recogs=%d", recognitionsList.size());
+            telemetry.addData("odd", "recogs=%d", recognitionsList.size());
+            if (recognitionsList.size() > 0) {
+                Recognition recognition = recognitionsList.get(0);
+                telemetry.addData(String.format("odd-label"), recognition.getLabel());
+                telemetry.addData(String.format("odd-left,top"), "%.03f , %.03f",
+                        recognition.getLeft(), recognition.getTop());
+                telemetry.addData(String.format("odd-right,bottom"), "%.03f , %.03f",
+                        recognition.getRight(), recognition.getBottom());
+            }
         } else {
             telemetry.addData("Tensor", "DISABLED");
         }
@@ -732,6 +740,25 @@ public abstract class AutoBase extends LinearOpMode {
         return config;
     } */
 
+
+    protected List<Recognition> getRecognitions() {
+
+        List<Recognition> currentRecognitions = tfod.getRecognitions();
+        telemetry.addData("# Objects Detected", currentRecognitions.size());
+
+        // Step through the list of recognitions and display info for each one.
+        for (Recognition recognition : currentRecognitions) {
+            double x = (recognition.getLeft() + recognition.getRight()) / 2 ;
+            double y = (recognition.getTop()  + recognition.getBottom()) / 2 ;
+
+            telemetry.addData(""," ");
+            telemetry.addData("Image", "%s (%.0f %% Conf.)", recognition.getLabel(), recognition.getConfidence() * 100);
+            telemetry.addData("- Position", "%.0f / %.0f", x, y);
+            telemetry.addData("- Size", "%.0f x %.0f", recognition.getWidth(), recognition.getHeight());
+        }
+
+        return new ArrayList<>(currentRecognitions);
+    }
 
     /*protected SignalConfig SignalIdentifier() {
         ratCrewWaitMillis(WAIT_TIME);
