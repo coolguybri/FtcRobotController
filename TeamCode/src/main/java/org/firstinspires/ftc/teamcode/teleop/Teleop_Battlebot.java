@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.barebones;
+package org.firstinspires.ftc.teamcode.teleop;
 
 import static java.lang.Thread.sleep;
 
@@ -11,8 +11,8 @@ import com.qualcomm.robotcore.util.Range;
 
 /**
  */
-@TeleOp(name="Fruity Flame BattleBot!", group="AAA")
-public class BareBones_FruityFlameMain extends OpMode {
+@TeleOp(name="Fruity Flame BattleBot!", group="OldTeleop")
+public class Teleop_Battlebot extends OpMode {
 
     // Instance Members.
     private boolean doMotors = true;
