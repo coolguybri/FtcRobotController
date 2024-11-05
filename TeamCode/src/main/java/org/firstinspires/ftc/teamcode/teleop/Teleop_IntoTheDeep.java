@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.teleop;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
@@ -37,10 +38,10 @@ public class Teleop_IntoTheDeep extends OpMode {
     private DcMotor funkyShoulder;
     private int funkyShoulderStartPos = 0;
     private int funkyShoulderEndPos = 0;
+
     private DcMotor funkyExtender;
     private int funkyExtenderStartPos = 0;
     private int funkyExtenderEndPos = 0;
-
 
 
     // Called once, right after hitting the Init button.
@@ -55,10 +56,14 @@ public class Teleop_IntoTheDeep extends OpMode {
             backRightDrive = hardwareMap.get(DcMotor.class, "motorRightRear");
 
             // This changes based on the gear box.
-            frontLeftDrive.setDirection(DcMotor.Direction.FORWARD);
-            frontRightDrive.setDirection(DcMotor.Direction.REVERSE);
-            backLeftDrive.setDirection(DcMotor.Direction.FORWARD);
-            backRightDrive.setDirection(DcMotor.Direction.REVERSE);
+            //frontLeftDrive.setDirection(DcMotor.Direction.FORWARD);
+            //frontRightDrive.setDirection(DcMotor.Direction.REVERSE);
+            //backLeftDrive.setDirection(DcMotor.Direction.FORWARD);
+            //backRightDrive.setDirection(DcMotor.Direction.REVERSE);
+            frontLeftDrive.setDirection(DcMotor.Direction.REVERSE);
+            frontRightDrive.setDirection(DcMotor.Direction.FORWARD);
+            backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
+            backRightDrive.setDirection(DcMotor.Direction.FORWARD);
 
             // Set all motors to zero power.
             frontLeftDrive.setPower(0);
@@ -84,34 +89,28 @@ public class Teleop_IntoTheDeep extends OpMode {
                 funkyClawButtonLast = false;
                 funkyClawLock = true;
                 funkyClaw = hardwareMap.get(Servo.class, "funkyClaw");
-                funkyClaw.setPosition(0.0); // start clamped
 
                 // wrist
                 funkyWrist = hardwareMap.get(Servo.class, "funkyWrist");
-                //funkyWrist.setPosition(0.0);
 
                  // shoulder
                 funkyShoulder = hardwareMap.get(DcMotor.class, "funkyShoulder");
-                funkyShoulder.setDirection(DcMotor.Direction.FORWARD);
+                funkyShoulder.setDirection(DcMotor.Direction.REVERSE);
                 funkyShoulder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
                 funkyShoulder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
                 funkyShoulder.setPower(0);
                 funkyShoulderStartPos = funkyShoulder.getCurrentPosition();
                 funkyShoulderEndPos = funkyShoulderStartPos + 200;
-                //funkyExtender = hardwareMap.get(DcMotor.class, "funkyShoulder2");
-                //funkyExtender.setDirection(DcMotor.Direction.REVERSE);
-                //funkyShoulder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-                //funkyShoulder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-                //funkyShoulder.setPower(0);
 
                 // Extendo
                 funkyExtender = hardwareMap.get(DcMotor.class, "funkyShoulder2");
-                funkyExtender.setDirection(DcMotor.Direction.FORWARD);
+                funkyExtender.setDirection(DcMotor.Direction.REVERSE);
                 funkyExtender.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
                 funkyExtender.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
                 funkyExtender.setPower(0);
                 funkyExtenderStartPos = funkyExtender.getCurrentPosition();
                 funkyExtenderEndPos = funkyExtenderStartPos + 200;
+
             } catch (Exception e) {
                 doExtendoArm = false;
                 errFunkyArm = true;
@@ -179,15 +178,23 @@ public class Teleop_IntoTheDeep extends OpMode {
             double turn = gamepad1.right_stick_x;
             double strafe = gamepad1.left_stick_x;
             if (Math.abs(turn) > 0.1) {
-                leftBackPower = Range.clip(drive + turn, -1.0, 1.0);
-                leftFrontPower = Range.clip(drive + turn, -1.0, 1.0);
-                rightBackPower = Range.clip(drive - turn, -1.0, 1.0);
-                rightFrontPower = Range.clip(drive - turn, -1.0, 1.0);
+                //leftBackPower = Range.clip(drive + turn, -1.0, 1.0);
+                //leftFrontPower = Range.clip(drive + turn, -1.0, 1.0);
+                //rightBackPower = Range.clip(drive - turn, -1.0, 1.0);
+                //rightFrontPower = Range.clip(drive - turn, -1.0, 1.0);
+                leftBackPower = Range.clip(drive - turn, -1.0, 1.0);
+                leftFrontPower = Range.clip(drive - turn, -1.0, 1.0);
+                rightBackPower = Range.clip(drive + turn, -1.0, 1.0);
+                rightFrontPower = Range.clip(drive + turn, -1.0, 1.0);
             } else {
                 leftBackPower = Range.clip(drive - strafe, -1.0, 1.0);
                 leftFrontPower = Range.clip(drive + strafe, -1.0, 1.0);
                 rightBackPower = Range.clip(drive + strafe, -1.0, 1.0);
                 rightFrontPower = Range.clip(drive - strafe, -1.0, 1.0);
+                //leftBackPower = Range.clip(drive + strafe, -1.0, 1.0);
+                //leftFrontPower = Range.clip(drive - strafe, -1.0, 1.0);
+                //rightBackPower = Range.clip(drive - strafe, -1.0, 1.0);
+                //rightFrontPower = Range.clip(drive + strafe, -1.0, 1.0);
             }
 
             // Send calculated power to wheels
@@ -239,7 +246,8 @@ public class Teleop_IntoTheDeep extends OpMode {
             double wristCurrent = funkyWrist.getPosition();
             double clampedPosition = 0.0;
             if (wristControlDirection != 0) {
-                double wristStep = 0.002; // the bigger this is, the faster it will move
+                //double wristStep = 0.002; // the bigger this is, the faster it will move
+                double wristStep = 0.02; // the bigger this is, the faster it will move
                 double newPosition = wristCurrent + (wristStep * wristControlDirection);
                 clampedPosition = Math.max(0.0, Math.min(1.0, newPosition));
                 funkyWrist.setPosition(clampedPosition);
@@ -251,10 +259,10 @@ public class Teleop_IntoTheDeep extends OpMode {
             double armMotorScaler = 1.0;
             switch (armThrottlerGear) {
             case GEAR_TWO:
-                armMotorScaler = 1.0;
+                armMotorScaler = 0.5;
                 break;
             case GEAR_ONE:
-                armMotorScaler = 0.5;
+                armMotorScaler = 1.0;
                 break;
             }
             double armPower = 0.0;
@@ -269,18 +277,22 @@ public class Teleop_IntoTheDeep extends OpMode {
             telemetry.addData("funkShdr", "%.1f (%.1f), pos=%d",
                     armPower * armMotorScaler, armMotorScaler, funkyShoulderPos);
 
+            // Extendo
             double extendoMotorScaler = 1.0;
-            double extendoPower = 0.0;
+            double extendoPowerRaw = 0.0;
+            int extendoDirection = 1;
             if (gamepad1.dpad_left) {
-                extendoPower = -1.0;
+                extendoPowerRaw = 1.0;
+                extendoDirection = -1;
             } else if (gamepad1.dpad_right) {
-                extendoPower = 1.0;
+                extendoPowerRaw = 1.0;
             }
-            funkyExtender.setPower(extendoPower * extendoMotorScaler);
+            double extendoPower = extendoPowerRaw * extendoMotorScaler * extendoDirection;
+            funkyExtender.setPower(extendoPower);
 
             int funkyExtendoPos = funkyExtender.getCurrentPosition();
             telemetry.addData("funkXtnd", "%.1f (%.1f), pos=%d",
-               extendoPower * extendoMotorScaler, extendoPower, funkyExtendoPos);
+                    extendoPower, extendoPowerRaw, funkyExtendoPos);
         }
 
         telemetry.addData("Status", "Run Clock: %.2f", getRuntime());
