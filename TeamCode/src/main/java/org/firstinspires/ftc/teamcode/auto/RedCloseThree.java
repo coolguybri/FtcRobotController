@@ -3,8 +3,8 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 /**
  */
-@Autonomous(name="Red Close One InDeep", group="AAAInDeep")
-public class RedCloseOne extends AutoDriveTest {
+@Autonomous(name="Red Close Three InDeep", group="AAAInDeep")
+public class RedCloseThree extends AutoDriveTest {
 
     @Override
     public void ratCrewGo() {
@@ -12,14 +12,8 @@ public class RedCloseOne extends AutoDriveTest {
         turnLeft(90);
         ratCrewWaitSecs(2);
 
-        encoderDrive(-22);
+        encoderDrive(-70);
         plopThePurplePixel();
-
-        //encoderDrive(22);
-        //turnRight(90);
-        //encoderDrive(-65);
-        //turnRight(90);
-        //encoderDrive(-5);
 
         //turnRight(90);
         //encoderDrive(-48);
