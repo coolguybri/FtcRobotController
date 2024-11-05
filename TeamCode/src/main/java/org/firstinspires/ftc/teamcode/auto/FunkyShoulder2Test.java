@@ -4,7 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 /**
  */
-@Autonomous(name="ARM Goofy", group="AA DanceDemo")
+@Autonomous(name="ARM Goofy", group="ZZ DanceDemo")
 public class    FunkyShoulder2Test extends AutoDriveTest {
 
     @Override

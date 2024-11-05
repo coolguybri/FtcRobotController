@@ -4,7 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 /**
  */
-@Autonomous(name="Fruity Final Mode", group="A")
+@Autonomous(name="Fruity Final Mode", group="Z")
 public class AutoFinalFruity extends AutoBase {
 
     @Override

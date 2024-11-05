@@ -5,7 +5,7 @@ import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 
 /**
  */
-@Autonomous(name="Pixel Guesser", group="A")
+@Autonomous(name="Pixel Guesser", group="Z")
 public class PixelGuesser extends AutoBase {
 
     @Override
