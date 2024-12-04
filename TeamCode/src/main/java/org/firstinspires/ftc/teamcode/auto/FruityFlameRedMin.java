@@ -13,7 +13,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
 /**
  */
-@Autonomous(name="F.Flame: Red Min", group="AutoTest")
+@Autonomous(name="F.Flame: Red Min", group="ZZOld")
 public class FruityFlameRedMin extends AutoBase {
 
     @Override

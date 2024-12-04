@@ -14,7 +14,7 @@ public class RedHomeRowTwo extends AutoDriveTest {
         ratCrewWaitMillis(500);
         encoderDrive(-45);
         plopThePurplePixel();
-        encoderDrive(116);
+        encoderDrive(96);
     }
 
 }

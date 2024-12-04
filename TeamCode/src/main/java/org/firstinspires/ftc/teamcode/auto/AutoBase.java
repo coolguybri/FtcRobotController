@@ -190,6 +190,10 @@ public abstract class AutoBase extends LinearOpMode {
             arm.setPower(0);
             armStart = arm.getCurrentPosition();
             armTarget = 0;
+
+            arm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            arm.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            arm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         }
 
         if (doExtend) {
@@ -197,6 +201,10 @@ public abstract class AutoBase extends LinearOpMode {
             extend.setPower(0);
             extendStart = extend.getCurrentPosition();
             extendTarget = 0;
+
+            extend.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            extend.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            extend.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         }
 
         if (doFinger) {

@@ -92,6 +92,7 @@ public class Teleop_IntoTheDeep extends OpMode {
 
                 // wrist
                 funkyWrist = hardwareMap.get(Servo.class, "funkyWrist");
+                funkyWrist.setPosition(0.5f);
 
                  // shoulder
                 funkyShoulder = hardwareMap.get(DcMotor.class, "funkyShoulder");
@@ -141,7 +142,7 @@ public class Teleop_IntoTheDeep extends OpMode {
         throttlerButtonLast = throttlerButtonNow;
 
         // Arm throttler: Left Bumper
-        boolean armThrottlerButtonNow = gamepad1.left_bumper;
+        /*boolean armThrottlerButtonNow = gamepad1.left_bumper;
         if (!armThrottlerButtonLast && armThrottlerButtonNow) {
             switch (armThrottlerGear) {
             case GEAR_TWO:
@@ -152,7 +153,7 @@ public class Teleop_IntoTheDeep extends OpMode {
                 break;
             }
         }
-        armThrottlerButtonLast = armThrottlerButtonNow;
+        armThrottlerButtonLast = armThrottlerButtonNow;  */
 
         if (doMotors) {
             double leftBackPower = 0.0;
@@ -216,17 +217,14 @@ public class Teleop_IntoTheDeep extends OpMode {
 
         if (doExtendoArm) {
             // Claw Servo
-            boolean funkyClawButtonNow = gamepad1.right_bumper;
-            if (!funkyClawButtonLast && funkyClawButtonNow) {
-                funkyClawLock = !funkyClawLock;
-            }
-            funkyClawButtonLast = funkyClawButtonNow;
-
-            double funkyClawNewPosition = 1.0;
-            if (funkyClawLock) {
+            double funkyClawNewPosition = 0.5;
+            if (gamepad1.right_bumper) {
+                funkyClawNewPosition = 1.0;
+            } else if (gamepad1.left_bumper) {
                 funkyClawNewPosition = 0.0;
             }
             funkyClaw.setPosition(funkyClawNewPosition);
+
             telemetry.addData("funcClaw", "actual=%.1f, desire=%.1f",
                     funkyClaw.getPosition(), funkyClawNewPosition);
 
@@ -244,12 +242,12 @@ public class Teleop_IntoTheDeep extends OpMode {
             } */
 
             double wristCurrent = funkyWrist.getPosition();
-            double clampedPosition = 0.0;
+            double clampedPosition = 0.5;
             if (wristControlDirection != 0) {
                 //double wristStep = 0.002; // the bigger this is, the faster it will move
                 double wristStep = 0.02; // the bigger this is, the faster it will move
                 double newPosition = wristCurrent + (wristStep * wristControlDirection);
-                clampedPosition = Math.max(0.0, Math.min(1.0, newPosition));
+                clampedPosition = Math.max(0.5, Math.min(1.0, newPosition));
                 funkyWrist.setPosition(clampedPosition);
             }
             telemetry.addData("funkWrst", "actual=%.1f, desired=%.1f, desired-dir=%d",
@@ -262,7 +260,7 @@ public class Teleop_IntoTheDeep extends OpMode {
                 armMotorScaler = 0.5;
                 break;
             case GEAR_ONE:
-                armMotorScaler = 1.0;
+                armMotorScaler = 0.75;
                 break;
             }
             double armPower = 0.0;
