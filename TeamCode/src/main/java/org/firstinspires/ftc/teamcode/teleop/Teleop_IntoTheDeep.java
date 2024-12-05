@@ -43,6 +43,9 @@ public class Teleop_IntoTheDeep extends OpMode {
     private int funkyExtenderStartPos = 0;
     private int funkyExtenderEndPos = 0;
 
+    // sample
+    private Servo sampleSlopper;
+
 
     // Called once, right after hitting the Init button.
     @Override
@@ -81,6 +84,8 @@ public class Teleop_IntoTheDeep extends OpMode {
             frontRightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         }
+
+        sampleSlopper = hardwareMap.get(Servo.class, "pixelPlopper");
 
         boolean errFunkyArm = false;
         if (doExtendoArm) {
@@ -214,6 +219,16 @@ public class Teleop_IntoTheDeep extends OpMode {
             telemetry.addData("mtr-lf", "%.1f (%.1f), pos=%d", leftFrontPower * motorScaler, motorScaler, frontLeftPos);
             telemetry.addData("mtr-rf", "%.1f (%.1f), pos=%d", rightFrontPower * motorScaler, motorScaler, frontRightPos);
         }
+
+        // sample slopper
+        double sampleSlopperNewPosition = 0.5;
+        if (gamepad1.y) {
+            sampleSlopperNewPosition = 0.0;
+        }
+        sampleSlopper.setPosition(sampleSlopperNewPosition);
+
+
+
 
         if (doExtendoArm) {
             // Claw Servo
