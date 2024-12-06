@@ -1,7 +1,7 @@
 package org.firstinspires.ftc.teamcode.auto;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import java.util.List;
-import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
+//import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 
 /**
  */
@@ -16,7 +16,7 @@ public class PixelGuesser extends AutoBase {
         encoderDrive(3);
         encoderDrive(-3);
 
-        Recognition gotit = null;
+        /*Recognition gotit = null;
         for (int j = 0 ;(gotit == null) && (j < 2) ; j++) {
 
             for (int i = 0; (gotit == null) && (i < 2); i++) {
@@ -36,7 +36,7 @@ public class PixelGuesser extends AutoBase {
             recognitionsList.clear();
             recognitionsList.add(gotit);
             break;
-        }
+        } */
 
         ratCrewWaitSecs(30);
 

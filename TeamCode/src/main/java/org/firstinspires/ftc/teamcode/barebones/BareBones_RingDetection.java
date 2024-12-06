@@ -36,8 +36,8 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 //import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
-import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
-import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
+//import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
+//import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -72,8 +72,8 @@ public class BareBones_RingDetection extends LinearOpMode {
             "AfgOBrf/////AAABmRjMx12ilksPnWUyiHDtfRE42LuceBSFlCTIKmmNqCn2EOk3I4NtDCSr0wCLFxWPoLR2qHKraX49ofQ2JknI76SJS5Hy8cLbIN+1GlFDqC8ilhuf/Y1yDzKN6a4n0fYWcEPlzHRc8C1V+D8vZ9QjoF3r//FDDtm+M3qlmwA7J/jNy4nMSXWHPCn2IUASoNqybTi/CEpVQ+jEBOBjtqxNgb1CEdkFJrYGowUZRP0z90+Sew2cp1DJePT4YrAnhhMBOSCURgcyW3q6Pl10XTjwB4/VTjF7TOwboQ5VbUq0wO3teE2TXQAI53dF3ZUle2STjRH0Rk8H94VtHm9u4uitopFR7zmxVl3kQB565EUHwfvG";
 
    // private VuforiaLocalizer vuforia;
-    private TFObjectDetector tfod;
-    private List<Recognition> recognitionsList = new ArrayList<>();
+    //private TFObjectDetector tfod;
+    //private List<Recognition> recognitionsList = new ArrayList<>();
     private int numCallbacks;
 
     @Override
@@ -87,7 +87,7 @@ public class BareBones_RingDetection extends LinearOpMode {
          * Activate TensorFlow Object Detection before we wait for the start command.
          * Do it here so that the Camera Stream window will have the TensorFlow annotations visible.
          **/
-        if (tfod != null) {
+        /*if (tfod != null) {
             tfod.activate();
 
             // The TensorFlow software will scale the input images from the camera to a lower resolution.
@@ -99,14 +99,14 @@ public class BareBones_RingDetection extends LinearOpMode {
 
             // Uncomment the following line if you want to adjust the magnification and/or the aspect ratio of the input images.
             //tfod.setZoom(2.5, 1.78);
-        }
+        } */
 
         /** Wait for the game to begin */
-        telemetry.addData("Init", "tensor=%b", (tfod != null));
+       // telemetry.addData("Init", "tensor=%b", (tfod != null));
         telemetry.update();
         waitForStart();
 
-        if ((tfod != null) && opModeIsActive()) {
+       /* if ((tfod != null) && opModeIsActive()) {
 
             // Record start time
             long startTime =  System.nanoTime();
@@ -139,11 +139,11 @@ public class BareBones_RingDetection extends LinearOpMode {
                 // update our logs to the output.
                 telemetry.update();
             }
-        } // END  OF MAIN LOOP
+        } // END  OF MAIN LOOP */
 
-        if (tfod != null) {
+        /* if (tfod != null) {
             tfod.shutdown();
-        }
+        } */
     }
 
     /**
@@ -172,7 +172,7 @@ public class BareBones_RingDetection extends LinearOpMode {
     public RingConfig getRingConfiguration()
     {
         RingConfig currentRings = RingConfig.UNDETERMINED;
-        if (recognitionsList.size() <= 0) {
+        /*if (recognitionsList.size() <= 0) {
             currentRings = RingConfig.EMPTY;
         }
         else if (recognitionsList.size() > 1) {
@@ -185,7 +185,7 @@ public class BareBones_RingDetection extends LinearOpMode {
             } else {
                 currentRings = RingConfig.SINGLE;
             }
-        }
+        } */
         return currentRings;
     }
 }

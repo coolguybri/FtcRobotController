@@ -10,9 +10,9 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
+//import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.vision.VisionPortal;
-import org.firstinspires.ftc.vision.tfod.TfodProcessor;
+//import org.firstinspires.ftc.vision.tfod.TfodProcessor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -101,9 +101,9 @@ public abstract class AutoBase extends LinearOpMode {
 
     // Instance Members: ObjectDetection
     protected boolean doObjectDetection = false;
-    private TfodProcessor tfod;
+   // private TfodProcessor tfod;
     private VisionPortal visionPortal;
-    protected List<Recognition> recognitionsList = new ArrayList<>();
+    //protected List<Recognition> recognitionsList = new ArrayList<>();
 
     @Override
     public void runOpMode(){
@@ -223,10 +223,10 @@ public abstract class AutoBase extends LinearOpMode {
 
         initGyroscope();
 
-       if (doObjectDetection) {
+       /*if (doObjectDetection) {
             initTfod();
 
-            if (tfod != null) {
+           // if (tfod != null) {
                // tfod.activate();
 
                 // The TensorFlow software will scale the input images from the camera to a lower resolution.
@@ -236,10 +236,10 @@ public abstract class AutoBase extends LinearOpMode {
                 // should be set to the value of the images used to create the TensorFlow Object Detection model
                 // (typically 16/9).
                // tfod.setZoom(1.0, 16.0/9.0);
-            } else {
+           // } else {
                 doObjectDetection = false;
-            }
-        }
+           // }
+        } */
 
         // Init run state.
         madeTheRun = false;
@@ -491,7 +491,7 @@ public abstract class AutoBase extends LinearOpMode {
                     extendStart, extend.getCurrentPosition(), extendTarget, extend.getPower());
         }
 
-        if (doObjectDetection) {
+        /*if (doObjectDetection) {
             telemetry.addData("odd", "recogs=%d", recognitionsList.size());
             if (recognitionsList.size() > 0) {
                 Recognition recognition = recognitionsList.get(0);
@@ -503,7 +503,7 @@ public abstract class AutoBase extends LinearOpMode {
             }
         } else {
             telemetry.addData("Tensor", "DISABLED");
-        }
+        } */
 
         telemetry.update();
     }
@@ -678,7 +678,7 @@ public abstract class AutoBase extends LinearOpMode {
     /**
      * Initialize the TensorFlow Object Detection processor.
      */
-    private void initTfod() {
+    /*private void initTfod() {
 
         // Create the TensorFlow processor by using a builder.
        tfod = new TfodProcessor.Builder()
@@ -732,7 +732,7 @@ public abstract class AutoBase extends LinearOpMode {
         // Disable or re-enable the TFOD processor at any time.
         //visionPortal.setProcessorEnabled(tfod, true);
 
-    }   // end method initTfod()
+    }   // end method initTfod() */
 
 
     /*
@@ -766,7 +766,7 @@ public abstract class AutoBase extends LinearOpMode {
     } */
 
 
-    protected List<Recognition> getRecognitions() {
+    /*protected List<Recognition> getRecognitions() {
 
         List<Recognition> currentRecognitions = tfod.getRecognitions();
         telemetry.addData("# Objects Detected", currentRecognitions.size());
@@ -783,7 +783,7 @@ public abstract class AutoBase extends LinearOpMode {
         }
 
         return new ArrayList<>(currentRecognitions);
-    }
+    } */
 
     /*protected SignalConfig SignalIdentifier() {
         ratCrewWaitMillis(WAIT_TIME);
