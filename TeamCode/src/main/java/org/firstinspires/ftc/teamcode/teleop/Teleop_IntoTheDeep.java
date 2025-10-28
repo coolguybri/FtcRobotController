@@ -9,7 +9,7 @@ import com.qualcomm.robotcore.util.Range;
 
 /**
  */
-@TeleOp(name="Fruity Flame Deep!", group="AAA")
+@TeleOp(name="Fruity Flame: Into the Deep!", group="AAA")
 public class Teleop_IntoTheDeep extends OpMode {
 
     // Throttler
@@ -18,7 +18,7 @@ public class Teleop_IntoTheDeep extends OpMode {
         GEAR_ONE,
     };
     private boolean throttlerButtonLast = false;
-    private ThrottlerGear throttlerGear = ThrottlerGear.GEAR_ONE;
+    private ThrottlerGear throttlerGear = ThrottlerGear.GEAR_TWO;
     private boolean armThrottlerButtonLast = false;
     private ThrottlerGear armThrottlerGear = ThrottlerGear.GEAR_ONE;
 
@@ -101,7 +101,7 @@ public class Teleop_IntoTheDeep extends OpMode {
 
                  // shoulder
                 funkyShoulder = hardwareMap.get(DcMotor.class, "funkyShoulder");
-                funkyShoulder.setDirection(DcMotor.Direction.REVERSE);
+                funkyShoulder.setDirection(DcMotor.Direction.FORWARD);
                 funkyShoulder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
                 funkyShoulder.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
                 funkyShoulder.setPower(0);
@@ -147,7 +147,7 @@ public class Teleop_IntoTheDeep extends OpMode {
         throttlerButtonLast = throttlerButtonNow;
 
         // Arm throttler: Left Bumper
-        /*boolean armThrottlerButtonNow = gamepad1.left_bumper;
+        boolean armThrottlerButtonNow = gamepad1.b;
         if (!armThrottlerButtonLast && armThrottlerButtonNow) {
             switch (armThrottlerGear) {
             case GEAR_TWO:
@@ -158,7 +158,7 @@ public class Teleop_IntoTheDeep extends OpMode {
                 break;
             }
         }
-        armThrottlerButtonLast = armThrottlerButtonNow;  */
+        armThrottlerButtonLast = armThrottlerButtonNow;
 
         if (doMotors) {
             double leftBackPower = 0.0;
@@ -178,9 +178,10 @@ public class Teleop_IntoTheDeep extends OpMode {
 
             //keep drive the same, turn--switch to right joystic
             double drive = -gamepad1.left_stick_y;
-            if (Math.abs(drive) < 0.1) {
+            /*if (Math.abs(drive) < 0.1) {
                 drive = -gamepad1.right_stick_y;
-            }
+            } */
+
             double turn = gamepad1.right_stick_x;
             double strafe = gamepad1.left_stick_x;
             if (Math.abs(turn) > 0.1) {
@@ -227,9 +228,6 @@ public class Teleop_IntoTheDeep extends OpMode {
         }
         sampleSlopper.setPosition(sampleSlopperNewPosition);
 
-
-
-
         if (doExtendoArm) {
             // Claw Servo
             double funkyClawNewPosition = 0.5;
@@ -250,11 +248,6 @@ public class Teleop_IntoTheDeep extends OpMode {
             } else if (gamepad1.right_trigger > 0.1) {
                 wristControlDirection = -1;
             }
-            /*if (gamepad1.dpad_right) {
-                wristControlDirection = 1;
-            } else if (gamepad1.dpad_left) {
-                wristControlDirection = -1;
-            } */
 
             double wristCurrent = funkyWrist.getPosition();
             double clampedPosition = 0.5;
@@ -272,10 +265,10 @@ public class Teleop_IntoTheDeep extends OpMode {
             double armMotorScaler = 1.0;
             switch (armThrottlerGear) {
             case GEAR_TWO:
-                armMotorScaler = 0.5;
+                armMotorScaler = 0.75;
                 break;
             case GEAR_ONE:
-                armMotorScaler = 0.75;
+                armMotorScaler = 0.5;
                 break;
             }
             double armPower = 0.0;

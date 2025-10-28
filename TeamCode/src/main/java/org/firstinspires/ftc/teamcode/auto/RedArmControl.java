@@ -19,9 +19,9 @@ public class RedArmControl extends AutoDriveTest {
             moveArmCounter(turnstomax, 0.25f);
             ratCrewWaitMillis(1000);
 
-            moveextendcounter(extendtomax, 0.20f);
+            moveExtendCounter(extendtomax, 0.20f);
             ratCrewWaitMillis(1000);
-            moveextendcounter(0, 0.20f);
+            moveExtendCounter(0, 0.20f);
             ratCrewWaitMillis(1000);
 
             moveArmCounter(0, 0.25f);

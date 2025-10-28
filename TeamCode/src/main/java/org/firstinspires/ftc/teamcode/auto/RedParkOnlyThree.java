@@ -10,7 +10,7 @@ public class RedParkOnlyThree extends AutoDriveTest {
     public void ratCrewGo() {
         encoderDrive(-1);
         turnLeft(90);
-        encoderDrive(45);
+        encoderDrive(24);
     }
 
 }

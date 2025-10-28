@@ -6,16 +6,11 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-//import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.vision.VisionPortal;
-//import org.firstinspires.ftc.vision.tfod.TfodProcessor;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -193,6 +188,7 @@ public abstract class AutoBase extends LinearOpMode {
 
             arm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
             arm.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            arm.setDirection(DcMotor.Direction.REVERSE);
             arm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         }
 
@@ -859,13 +855,19 @@ public abstract class AutoBase extends LinearOpMode {
         }
     }
 
+    protected void resetFinger() {
+        if (doFinger) {
+            finger.setPosition(0.5);
+        }
+    }
 
-    protected void raiseWrist(int i) {
+
+    protected void raiseWrist() {
         if (doFinger) {
             wrist.setPosition(1.0);
         }
     }
-    protected void lowerWrist(int i) {
+    protected void lowerWrist() {
         if (doFinger) {
             wrist.setPosition(0.0);
         }
@@ -877,7 +879,7 @@ public abstract class AutoBase extends LinearOpMode {
     }
 
     protected void plopThePurplePixel() {
-        if(doThePurplePixelPlopper) {
+        if (doThePurplePixelPlopper) {
             thePurplePixelPlopper.setPosition(0.1);
             ratCrewWaitSecs(2);
             thePurplePixelPlopper.setPosition(1.0);
@@ -935,7 +937,7 @@ public abstract class AutoBase extends LinearOpMode {
         }
     }
 
-    protected void moveextendcounter(int counter, float power) {
+    protected void moveExtendCounter(int counter, float power) {
         if (doExtend) {
             extendTarget = extendStart + counter;
             printStatus();
@@ -947,7 +949,7 @@ public abstract class AutoBase extends LinearOpMode {
             // Loop and wait until its done.
             ElapsedTime motorOnTime = new ElapsedTime();
             boolean keepGoing = true;
-            while (opModeIsActive() && keepGoing && (motorOnTime.seconds() < 30)) {
+            while (opModeIsActive() && keepGoing && (motorOnTime.seconds() < 4)) {
                 extend.setPower(power);
                 printStatus();
                 keepGoing = extend.isBusy();
