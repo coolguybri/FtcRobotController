@@ -11,7 +11,7 @@ import com.qualcomm.robotcore.util.Range;
 
 /**
  */
-@TeleOp(name="Fruity Flame BattleBot!", group="OldTeleop")
+@TeleOp(name="Fruity Flame: BattleBot!", group="OldTeleop")
 public class Teleop_Battlebot extends OpMode {
 
     // Instance Members.

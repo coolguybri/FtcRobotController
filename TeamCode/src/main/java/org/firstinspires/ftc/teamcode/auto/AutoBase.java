@@ -22,6 +22,7 @@ public abstract class AutoBase extends LinearOpMode {
     static final float COUNTS_PER_MOTOR_TORKNADO_60 = 1440;  // 24 cycles per revolution, times 60:1 geared down.
     static final float COUNTS_PER_MOTOR_TORKNADO_20 = 480;  // 24 cycles per revolution, times 20:1 geared down.
 
+    static final float COUNTS_PER_MOTOR_HD_HEX = 560;  // 28 cycles per revolution, times 20:1 geared down.
     // TFOD_MODEL_ASSET points to a model file stored in the project Asset location,
     // this is only used for Android Studio when using models in Assets.
     private static final String TFOD_MODEL_ASSET = "MyModelStoredAsAsset.tflite";
@@ -35,14 +36,14 @@ public abstract class AutoBase extends LinearOpMode {
 
     private static final float NUDGE_ANGLE = 4.0f;
     private static final float MOTOR_TURN_SPEED = 0.25f;
-    private static final float MOTOR_MOVE_SPEED = 0.6f;
-    private static final float WHEEL_DIAMETER = 4.0f;
+    private static final float MOTOR_MOVE_SPEED = 1.0f;
+    private static final float WHEEL_DIAMETER = 3.0f;
     private static final long WAIT_TIME = TimeUnit.SECONDS.toMillis(5L);
-    private static final float RAT_FUDGE = 0.98f;
+    private static final float RAT_FUDGE = 0.95f;
 
     // Instance Members: Motors
     protected boolean doMotors = true;
-    private boolean useGear20Motors = true;
+    private boolean useGear20Motors = false;
     private DcMotor backLeftDrive;
     private DcMotor backRightDrive;
     private DcMotor frontLeftDrive;
@@ -75,16 +76,16 @@ public abstract class AutoBase extends LinearOpMode {
     private int armStart = 0;
     private int armTarget = 0;
 
-    protected boolean doExtend = true;
+    protected boolean doExtend = false;
     protected DcMotor extend;
     private int extendStart = 0;
     private int extendTarget = 0;
 
-    protected boolean doFinger = true;
+    protected boolean doFinger = false;
     protected Servo finger;
     protected Servo wrist;
 
-    protected boolean doThePurplePixelPlopper = true;
+    protected boolean doThePurplePixelPlopper = false;
     protected Servo thePurplePixelPlopper;
 
     protected boolean doGate = false;
@@ -155,7 +156,9 @@ public abstract class AutoBase extends LinearOpMode {
             } else {
                 backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
                 backRightDrive.setDirection(DcMotor.Direction.FORWARD);
-                frontLeftDrive.setDirection(DcMotor.Direction.REVERSE);
+                // HACK: Gearbox installed backward.
+                // frontLeftDrive.setDirection(DcMotor.Direction.REVERSE);
+                frontLeftDrive.setDirection(DcMotor.Direction.FORWARD);
                 frontRightDrive.setDirection(DcMotor.Direction.FORWARD);
             }
 
@@ -172,6 +175,7 @@ public abstract class AutoBase extends LinearOpMode {
             backRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
 
             // Set all motors to zero power.
             backLeftDrive.setPower(0);
@@ -248,8 +252,8 @@ public abstract class AutoBase extends LinearOpMode {
     protected boolean initGyroscope() {
         if (doGyro) {
             imu = hardwareMap.get(IMU.class, "imu0");
-            RevHubOrientationOnRobot.LogoFacingDirection logoDirection = RevHubOrientationOnRobot.LogoFacingDirection.UP;
-            RevHubOrientationOnRobot.UsbFacingDirection usbDirection = RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
+            RevHubOrientationOnRobot.LogoFacingDirection logoDirection = RevHubOrientationOnRobot.LogoFacingDirection.LEFT;
+            RevHubOrientationOnRobot.UsbFacingDirection usbDirection = RevHubOrientationOnRobot.UsbFacingDirection.UP;
             RevHubOrientationOnRobot orientationOnRobot = new RevHubOrientationOnRobot(logoDirection, usbDirection);
             imu.initialize(new IMU.Parameters(orientationOnRobot));
             return true;
@@ -443,7 +447,8 @@ public abstract class AutoBase extends LinearOpMode {
     protected void printStatus() {
 
         if (doGyro) {
-        //    telemetry.addData("Gyro", "angle=%.1f", this.getGyroscopeAngle());
+            float currentAngle = (float) getGyroscopeAngle();
+            telemetry.addData("Gyro", "angle=%.1f", currentAngle);
         } else {
             telemetry.addData("Gyro", "DISABLED");
         }
@@ -532,9 +537,12 @@ public abstract class AutoBase extends LinearOpMode {
         }
 
         float startAngle = (float) getGyroscopeAngle();
-        double countsPerMotor = COUNTS_PER_MOTOR_TORKNADO_60;
-        if (useGear20Motors)
-            countsPerMotor = COUNTS_PER_MOTOR_TORKNADO_20;
+        //double countsPerMotor = COUNTS_PER_MOTOR_TORKNADO_60;
+       // if (useGear20Motors) {
+       //     countsPerMotor = COUNTS_PER_MOTOR_TORKNADO_20;
+       // } else {
+        double countsPerMotor = COUNTS_PER_MOTOR_HD_HEX;
+        //}
         double countsPerInch = countsPerMotor / (WHEEL_DIAMETER * Math.PI);
         int softStartDuration = 2000; // in milliseconds
         int brakeOffsetOne = (int) (18.0f * countsPerInch);
@@ -559,6 +567,10 @@ public abstract class AutoBase extends LinearOpMode {
         frontRightDrive.setTargetPosition(driveFrontRightTarget);
 
         // Turn On RUN_TO_POSITION
+        backLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        backRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         backLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         backRightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         frontLeftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -624,6 +636,10 @@ public abstract class AutoBase extends LinearOpMode {
 
         // Turn off RUN_TO_POSITION
         printStatus();
+        backLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         backLeftDrive.setPower(0);
         backRightDrive.setPower(0);
         frontLeftDrive.setPower(0);

@@ -9,7 +9,7 @@ import com.qualcomm.robotcore.util.Range;
 
 /**
  */
-@TeleOp(name="Fruity Flame: Into the Deep!", group="AAA")
+@TeleOp(name="Fruity Flame: Into the Deep!", group="OldTeleop")
 public class Teleop_IntoTheDeep extends OpMode {
 
     // Throttler

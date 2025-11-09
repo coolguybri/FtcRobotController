@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.util.Range;
 
 /**
  */
-@TeleOp(name="Fruity Flame CenterStage!", group="OldTeleop")
+@TeleOp(name="Fruity Flame: CenterStage!", group="OldTeleop")
 public class Teleop_CenterStage extends OpMode {
 
     // Throttler

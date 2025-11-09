@@ -3,7 +3,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 /**
  */
-@Autonomous(name="Red Home Row One", group="AAAInDeep")
+@Autonomous(name="Red Home Row One", group="ZZOld")
 public class RedHomeRowOne extends AutoDriveTest {
 
     @Override
