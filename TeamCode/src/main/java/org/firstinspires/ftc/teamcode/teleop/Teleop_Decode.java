@@ -37,6 +37,8 @@ public class Teleop_Decode extends OpMode {
     private boolean armThrottlerButtonLast = false;
     private ThrottlerGear armThrottlerGear = ThrottlerGear.GEAR_TWO;
 
+    private boolean doGate = false;
+    private Servo gate;
 
     // Called once, right after hitting the Init button.
     @Override
@@ -80,7 +82,7 @@ public class Teleop_Decode extends OpMode {
                 funkyWrist = hardwareMap.get(Servo.class, "funkyWrist");
                 funkyWrist.setPosition(0.5f);
 
-                 // shoulder
+                // shoulder
                 funkyShoulder = hardwareMap.get(DcMotor.class, "funkyShoulder");
                 funkyShoulder.setDirection(DcMotor.Direction.FORWARD);
                 funkyShoulder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -102,8 +104,22 @@ public class Teleop_Decode extends OpMode {
             }
         }
 
+        boolean errGate = false;
+        if (doGate) {
+            try {
+                // wrist
+                funkyWrist = hardwareMap.get(Servo.class, "gate");
+                //funkyWrist.setPosition(0.5f);
+            } catch (Exception e) {
+                doGate = false;
+                errGate = true;
+                telemetry.addData("Error", "Gate: %s", e.getMessage());
+            }
+        }
+
         telemetry.addData("Yo", "Initialized Drive, motors=%b", doMotors);
         telemetry.addData("Yo", "Initialized ExtendoArm, do=%s, err=%s", doExtendoArm, errFunkyArm);
+        telemetry.addData("Yo", "Initialized Gate, do=%s, err=%s", doGate, errGate);
     }
 
     // Called repeatedly, right after hitting start, up until hitting stop.
@@ -205,18 +221,11 @@ public class Teleop_Decode extends OpMode {
 
 
             // shoulder throttler
-            boolean armThrottlerButtonNow = gamepad1.b;
-            if (!armThrottlerButtonLast && armThrottlerButtonNow) {
-                switch (armThrottlerGear) {
-                    case GEAR_TWO:
-                        armThrottlerGear = ThrottlerGear.GEAR_ONE;
-                        break;
-                    case GEAR_ONE:
-                        armThrottlerGear = ThrottlerGear.GEAR_TWO;
-                        break;
-                }
+            armThrottlerGear = ThrottlerGear.GEAR_ONE;
+            boolean armThrottlerButtonNow = gamepad1.right_bumper;
+            if (armThrottlerButtonNow) {
+                armThrottlerGear = ThrottlerGear.GEAR_TWO;
             }
-            armThrottlerButtonLast = armThrottlerButtonNow;
 
             // Shoulder (DCmotor)
             double armMotorScaler = 1.0;
@@ -225,7 +234,7 @@ public class Teleop_Decode extends OpMode {
                 armMotorScaler = 0.9;
                 break;
             case GEAR_ONE:
-                armMotorScaler = 0.75;
+                armMotorScaler = 0.6;
                 break;
             }
 
@@ -245,6 +254,29 @@ public class Teleop_Decode extends OpMode {
 
             telemetry.addData("funkShdr", "%.1f (%.1f)",
                     armPower * armMotorScaler, armMotorScaler);
+        }
+
+        if (doGate) {
+
+            // Wrist servo
+            int gateControlDirection = 0;
+            if (gamepad1.left_bumper) {
+                gateControlDirection = 1;
+            } else if (gamepad1.right_bumper) {
+                gateControlDirection = -1;
+            }
+
+            double gateCurrent = gate.getPosition();
+            double clampedPosition = 0.5;
+            if (gateControlDirection != 0) {
+                //double wristStep = 0.002; // the bigger this is, the faster it will move
+                double wristStep = 0.02; // the bigger this is, the faster it will move
+                double newPosition = gateCurrent + (wristStep * gateControlDirection);
+                clampedPosition = Math.max(0.5, Math.min(1.0, newPosition));
+                gate.setPosition(clampedPosition);
+            }
+            telemetry.addData("gate", "actual=%.1f, desired=%.1f, desired-dir=%d",
+                    gateCurrent, clampedPosition, gateControlDirection);
         }
 
         telemetry.addData("Status", "Run Clock: %.2f", getRuntime());
